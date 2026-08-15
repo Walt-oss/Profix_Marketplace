@@ -40,7 +40,7 @@ def send_customer_data():
 
     result = response.json()
     print("Firebase response:", result)
-    return "User saved!"
+    return render_template("Feed.html")
 
 
 @app.route("/send_freelancer_data", methods=["POST"])
@@ -71,6 +71,11 @@ def send_freelancer_data():
     except requests.RequestException as e:
         print("Error writing artisan to RTDB:", e)
         return (f"Failed to save artisan: {e}", 500)
+    
+#Customer-Profile Page
+@app.route("/Customer_Profile")
+def profile():
+    return render_template("Customer_Profile.html")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+     app.run(debug=True)
