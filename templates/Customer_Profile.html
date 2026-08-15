@@ -52,13 +52,9 @@
         /* Profile Card Styling */
         .card-container {
             width: 350px;
-            height: 480px;
             background: #FFF;
             border-radius: 15px;
-            position: absolute;
-            top: 55%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            margin: 50px auto;
             box-shadow: 0px 10px 30px rgba(0,0,0,0.1);
             overflow: hidden;
             text-align: center;
@@ -125,6 +121,91 @@
         .stat-item b { display: block; font-size: 18px; }
         .stat-item span { font-size: 11px; color: #7f8c8d; text-transform: uppercase; }
 
+        /* Order Tracking Section */
+        .tracking-section {
+            text-align: left;
+            margin-top: 20px;
+        }
+
+        .section-label {
+            font-size: 12px;
+            font-weight: bold;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .order-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            background: #f9fafb;
+            border: 1px solid #eee;
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        .order-artisan {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 70px;
+            text-align: center;
+        }
+
+        .artisan-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .artisan-name {
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--primary);
+            line-height: 1.2;
+        }
+
+        .artisan-role {
+            font-size: 10px;
+            color: #7f8c8d;
+            margin-top: 2px;
+        }
+
+        .order-detail {
+            flex: 1;
+        }
+
+        .order-status {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            background: #eaf6f0;
+            color: var(--success);
+            padding: 3px 8px;
+            border-radius: 10px;
+            margin-bottom: 6px;
+        }
+
+        .order-desc {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.4;
+            margin: 0;
+        }
+
         .logout-btn {
             margin-top: 30px;
             background: #e74c3c;
@@ -185,6 +266,25 @@
                 </div>
             </div>
 
+            <div class="tracking-section">
+                <div class="section-label">Order Tracking</div>
+                <div class="order-card">
+                    <div class="order-artisan">
+                        <div class="artisan-avatar" id="artisanInitials">JM</div>
+                        <div class="artisan-name" id="artisanName">Jonny Mand</div>
+                        <div class="artisan-role">Electrician</div>
+                    </div>
+                    <div class="order-detail">
+                        <div class="order-status">In Progress</div>
+                        <p class="order-desc">Rewiring the kitchen circuit and installing a new distribution board. Arrived on site at 10:30, estimated completion by 14:00.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="Invoices-section">
+                <div class="section-label">Invoices</div>
+            </div>
+
             <button class="logout-btn" onclick="handleLogout()">Log Out</button>
         </div>
     </div>
@@ -211,6 +311,10 @@
             const name = document.getElementById('userName').innerText;
             const initials = name.split(' ').map(n => n[0]).join('');
             document.getElementById('userInitials').innerText = initials;
+
+            const artisanName = document.getElementById('artisanName').innerText;
+            const artisanInitials = artisanName.split(' ').map(n => n[0]).join('');
+            document.getElementById('artisanInitials').innerText = artisanInitials;
         };
     </script>
 </body>
