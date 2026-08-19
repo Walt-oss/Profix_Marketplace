@@ -1,296 +1,148 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Worker Dashboard - PRO FIX</title>
-    <style>
-        :root { 
-            --primary: #2c3e50; 
-            --accent: #3498db; 
-            --success: #04AA6D; 
-            --warning: #f1c40f;
-            --bg: #f4f7f6;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pro Fix — Worker Dashboard</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+<style>
+  .topbar{ justify-content:space-between; }
+  .topbar-left{ display:flex; align-items:center; gap:10px; }
 
-        body { 
-            font-family: 'Segoe UI', sans-serif; 
-            margin: 0; 
-            background-image: url('WhatsApp Image 2026-03-20 at 15.17.47.jpeg');
-            background-size: 150px;
-            background-repeat: repeat;
-            background-attachment: fixed;
-            background-color: var(--bg);
-            background-blend-mode: soft-light;
-        }
+  .section{ padding:0 18px 18px; }
+  .section-label{ font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin:18px 0 10px; }
 
-        .top-nav { background: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        
-        .container { max-width: 800px; margin: 20px auto; padding: 15px; }
+  /* Status card */
+  .status-card{ display:flex; align-items:center; justify-content:space-between; }
+  .status-text{ font-weight:700; font-size:14.5px; }
+  .status-sub{ font-size:11.5px; color:var(--muted); margin-top:2px; }
 
-        /* Status Toggle */
-        .status-card {
-            background: white; padding: 20px; border-radius: 12px;
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        }
+  .switch{ position:relative; display:inline-block; width:52px; height:30px; flex:none; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .slider{ position:absolute; inset:0; background:#2A3550; transition:.3s; border-radius:34px; cursor:pointer; }
+  .slider:before{ position:absolute; content:""; height:22px; width:22px; left:4px; bottom:4px; background:#EAF0F2; transition:.3s; border-radius:50%; }
+  input:checked + .slider{ background:var(--teal); }
+  input:checked + .slider:before{ transform:translateX(22px); background:#06201d; }
 
-        .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; inset: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--success); }
-        input:checked + .slider:before { transform: translateX(26px); }
+  /* Stats */
+  .stats-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .stat-card{ text-align:center; }
+  .stat-card h3{ margin:0; font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; }
+  .stat-card p{ margin:6px 0 0; font-size:22px; font-weight:800; color:var(--teal); font-variant-numeric:tabular-nums; }
 
-        /* Financials & Rates */
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        .stat-item { background: var(--primary); color: white; padding: 20px; border-radius: 12px; text-align: center; }
-        .stat-item h3 { margin: 0; font-size: 14px; opacity: 0.8; }
-        .stat-item p { margin: 5px 0 0; font-size: 24px; font-weight: bold; }
+  /* Booking cards */
+  .booking-card{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+  .booking-card h4{ margin:0; font-size:14px; color:var(--ink); }
+  .booking-card p{ margin:4px 0 0; font-size:11.5px; color:var(--muted); line-height:1.5; }
+  .job-price{ font-weight:700; color:var(--mint); font-family:Consolas,monospace; font-size:14px; white-space:nowrap; }
+  .booking-right{ text-align:right; flex:none; }
+  .booking-right .btn-ghost{ margin-top:8px; }
 
-        /* Schedule Management */
-        .section-title { font-size: 18px; font-weight: bold; color: var(--primary); margin: 20px 0 10px; }
-        
-        .booking-card {
-            background: white; border-radius: 12px; padding: 15px;
-            margin-bottom: 15px; border-left: 5px solid var(--accent);
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .booking-info h4 { margin: 0; color: #333; }
-        .booking-info p { margin: 3px 0; font-size: 13px; color: #666; }
-        .job-price { font-weight: bold; color: var(--success); }
-
-        .edit-btn { background: #eee; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; }
-        
-        /* Rate Editor */
-        .rate-settings { background: white; padding: 20px; border-radius: 12px; margin-top: 20px; }
-        .input-group { margin-bottom: 15px; }
-        .input-group label { display: block; font-size: 13px; margin-bottom: 5px; font-weight: bold; }
-        .input-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
-
-        .save-btn { background: var(--accent); color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; }
-    </style>
-	
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Fix - JoB Status</title>
-    <style>
-        :root { --done: #04AA6D; --todo: #ddd; --primary: #2c3e50; }
-        
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; background-color: #f4f7f6; }
-
-        
-        .top-nav {
-            background-color: white;
-            padding: 10px 20px;
-            display: flex;
-            align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0; 
-            z-index: 100;
-        }
-        
-        .m-icon { font-size: 30px; cursor: pointer; margin-right: 20px; color: var(--primary); }
-
-       
-        .side-drawer {
-            height: 100%; 
-            width: 0; 
-            position: fixed; 
-            z-index: 1000;
-            top: 0; 
-            left: 0; 
-            background-color: #2c3e50;
-            overflow-x: hidden; 
-            transition: 0.5s; 
-            padding-top: 60px;
-        }
-        
-        .side-drawer a {
-            padding: 15px 32px; 
-            text-decoration: none; 
-            font-size: 18px;
-            color: #ecf0f1; 
-            border-bottom: 1px solid #3e4f5f; 
-            display: block;
-        }
-        
-        .side-drawer .close-btn { 
-            position: absolute; 
-            top: 10px; 
-            right: 25px; 
-            font-size: 36px; 
-            color: white; 
-            cursor: pointer; 
-        }
-
-   
-        .olay {
-            display: none; 
-            position: fixed; 
-            width: 100%; 
-            height: 100%;
-            top: 0; 
-            left: 0; 
-            background-color: rgba(0,0,0,0.5); 
-            z-index: 500;
-        }
-
-      
-        .container { max-width: 600px; margin: 40px auto; padding: 20px; }
-        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
-        h2 { text-align: center; color: var(--primary); margin-bottom: 40px; }
-
-        /* Progress Bar */
-        .progressbar { display: flex; padding: 0; list-style-type: none; counter-reset: step; }
-        .progressbar li { width: 33.33%; position: relative; text-align: center; color: #999; font-size: 13px; font-weight: 600; }
-        
-        .progressbar li:before {
-            content: counter(step); counter-increment: step;
-            width: 30px; height: 30px; line-height: 30px;
-            border: 2px solid var(--todo); display: block;
-            margin: 0 auto 10px auto; border-radius: 50%;
-            background: white; position: relative; z-index: 2;
-        }
-
-        .progressbar li:after {
-            content: ''; position: absolute; width: 100%; height: 3px;
-            background: var(--todo); top: 15px; left: -50%; z-index: 1;
-        }
-
-        .progressbar li:first-child:after { content: none; }
-        
-        .progressbar li.active { color: var(--done); }
-        .progressbar li.active:before { border-color: var(--done); background: var(--done); color: white; }
-        .progressbar li.active + li:after { background: var(--done); }
-
-     
-        .info-section { margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; }
-        .info-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 15px; }
-        .label { color: #7f8c8d; }
-        .value { font-weight: bold; color: var(--primary); }
-    </style>
+  /* Rate settings */
+  .save-btn{ margin-top:6px; }
+</style>
 </head>
 <body>
+  <div class="phone">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="brand-mark">✓</div>
+        <div>
+          <div class="brand-name">Pro Fix</div>
+          <div class="brand-sub">Worker portal — <span id="workerName">Sarah M.</span></div>
+        </div>
+      </div>
+    </header>
 
-  <div class="top-nav">
-    <span class="m-icon" onclick="openNav()">&#9776;</span>
-    <div style="font-weight: bold; font-size: 20px; color: #2c3e50;">PRO FIX</div>
-  </div>
-
-  <div id="myDrawer" class="side-drawer">
-    <span class="close-btn" onclick="closeNav()">&times;</span>
-	 <a href="file:///C:/Users/Preneil%20Naidoo/Documents/prototype/Profixwork.html">Home</a>
-    <a href="file:///C:/Users/Preneil%20Naidoo/Documents/prototype/Workend8.html">Profile</a>
-  </div>
-
-  <div id="mOverlay" class="olay" onclick="closeNav()"></div>
-
-</body>
-<body>
-    <div class="top-nav">
-        <b style="font-size: 20px; color: var(--primary);">Worker Portal</b>
-        <div style="font-size: 14px; color: var(--accent);">Logged in: Sarah M.</div>
+    <div class="section">
+      <div class="card status-card">
+        <div>
+          <div class="status-text" id="statusText">Status: Offline</div>
+          <div class="status-sub">Switch on to receive new jobs</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" onchange="updateStatus(this)">
+          <span class="slider"></span>
+        </label>
+      </div>
     </div>
 
-    <div class="container">
-        <div class="status-card">
-            <div>
-                <b id="status-text">Status: Offline</b>
-                <p style="margin: 0; font-size: 12px; color: #777;">Switch on to receive new jobs</p>
-            </div>
-            <label class="switch">
-                <input type="checkbox" onchange="updateStatus(this)">
-                <span class="slider"></span>
-            </label>
-        </div>
-
-        <div class="stats-grid">
-            <div class="stat-item">
-                <h3>My Hourly Rate</h3>
-                <p>R550</p>
-            </div>
-            <div class="stat-item">
-                <h3>Today's Earnings</h3>
-                <p>R1,350</p>
-            </div>
-        </div>
-
-        <div class="section-title">📅 Upcoming Schedule</div>
-        
-        <div class="booking-card">
-            <div class="booking-info">
-                <h4>Router Setup & Mesh Install</h4>
-                <p>Client: Mr. Gumede • 14:00 Today</p>
-                <p>Location: Summerstrand, PE</p>
-            </div>
-            <div style="text-align: right;">
-                <div class="job-price">R850.00</div>
-                <button class="edit-btn">Directions</button>
-            </div>
-        </div>
-
-        <div class="booking-card" style="border-left-color: var(--warning);">
-            <div class="booking-info">
-                <h4>PC Hardware Upgrade</h4>
-                <p>Client: Jane Doe • 09:00 Tomorrow</p>
-                <p>Location: Central</p>
-            </div>
-            <div style="text-align: right;">
-                <div class="job-price">R1,200.00</div>
-                <button class="edit-btn">Manage</button>
-            </div>
-        </div>
-
-        <div class="section-title">⚙️ My Service Settings</div>
-        <div class="rate-settings">
-            <div class="input-group">
-                <label>Hourly Rate (ZAR)</label>
-                <input type="number" value="550">
-            </div>
-            <div class="input-group">
-                <label>Call-out Fee (ZAR)</label>
-                <input type="number" value="250">
-            </div>
-            <button class="save-btn" onclick="alert('Rates Updated!')">Update My Rates</button>
-        </div>
+    <div class="section">
+      <div class="stats-grid">
+        <div class="card stat-card"><h3>Hourly rate</h3><p>R550</p></div>
+        <div class="card stat-card"><h3>Today's earnings</h3><p>R1,350</p></div>
+      </div>
     </div>
 
-    <script>
-        function updateStatus(checkbox) {
-            const statusText = document.getElementById('status-text');
-            if(checkbox.checked) {
-                statusText.innerText = "Status: Online";
-                statusText.style.color = "#04AA6D";
-            } else {
-                statusText.innerText = "Status: Offline";
-                statusText.style.color = "#333";
-            }
-        } 
-		function openNav() {
-            document.getElementById("myDrawer").style.width = "250px";
-            document.getElementById("mOverlay").style.display = "block";
-        }
+    <div class="section" style="padding-bottom:0;">
+      <div class="section-label" style="margin-top:0;">Upcoming schedule</div>
 
-        function closeNav() {
-            document.getElementById("myDrawer").style.width = "0";
-            document.getElementById("mOverlay").style.display = "none";
-        }
+      <div class="card booking-card">
+        <div>
+          <h4>Router Setup &amp; Mesh Install</h4>
+          <p>Mr. Gumede · 14:00 today<br>Summerstrand, PE</p>
+        </div>
+        <div class="booking-right">
+          <div class="job-price">R850</div>
+          <button class="btn-ghost" onclick="showToast('Opening directions — demo only')">Directions</button>
+        </div>
+      </div>
 
-        function handleLogout() {
-            if(confirm("Are you sure you want to log out?")) {
-                window.location.href = "Workend.html"; 
-            }
-        }
+      <div class="card booking-card">
+        <div>
+          <h4>PC Hardware Upgrade</h4>
+          <p>Jane Doe · 09:00 tomorrow<br>Central</p>
+        </div>
+        <div class="booking-right">
+          <div class="job-price">R1,200</div>
+          <button class="btn-ghost" onclick="showToast('Opening job details — demo only')">Manage</button>
+        </div>
+      </div>
+    </div>
 
-        window.onload = function() {
-            const name = document.getElementById('userName').innerText;
-            const initials = name.split(' ').map(n => n[0]).join('');
-            document.getElementById('userInitials').innerText = initials;
-        };
-    </script>
+    <div class="section">
+      <div class="section-label">Service settings</div>
+      <div class="card">
+        <div class="field-group">
+          <label class="field-label">Hourly rate (ZAR)</label>
+          <input class="text-input" type="number" id="hourlyRate" value="550">
+        </div>
+        <div class="field-group" style="margin-bottom:6px;">
+          <label class="field-label">Call-out fee (ZAR)</label>
+          <input class="text-input" type="number" id="calloutFee" value="250">
+        </div>
+        <button class="btn-primary save-btn" onclick="saveRates()">Update my rates</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <nav class="tabbar">
+    <button class="tab" data-tab="dashboard">🏠<span>Dashboard</span><span class="tab-dot"></span></button>
+    <button class="tab" data-tab="schedule" data-placeholder>📅<span>Schedule</span><span class="tab-dot"></span></button>
+    <button class="tab" data-tab="earnings" data-placeholder>💰<span>Earnings</span><span class="tab-dot"></span></button>
+    <button class="tab" data-tab="profile" data-placeholder>👤<span>Profile</span><span class="tab-dot"></span></button>
+  </nav>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+  function updateStatus(checkbox){
+    const statusText = document.getElementById('statusText');
+    if(checkbox.checked){
+      statusText.textContent = "Status: Online";
+    } else {
+      statusText.textContent = "Status: Offline";
+    }
+  }
+
+  function saveRates(){
+    const rate = document.getElementById('hourlyRate').value;
+    const callout = document.getElementById('calloutFee').value;
+    showToast(`Rates updated — R${rate}/hr, R${callout} call-out`);
+  }
+
+  wireTabBar('dashboard');
+</script>
 </body>
 </html>

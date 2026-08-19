@@ -1,225 +1,164 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PRO FIX - Professional Services</title>
-  <style>
-    :root { --primary: #2c3e50; --accent: #3498db; --success: #04AA6D; --text-muted: #7f8c8d; }
-    
-    body { 
-        font-family: 'Segoe UI', sans-serif; 
-        margin: 0; 
-        background-color: #f4f7f6; 
-        color: #333; 
-        /* Tiled Logo Watermark */
-        background-image: url('WhatsApp Image 2026-03-20 at 15.17.47.jpeg');
-        background-size: 150px;
-        background-repeat: repeat;
-        background-attachment: fixed;
-        background-blend-mode: soft-light;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pro Fix — Find a Pro</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+<style>
+  .search-row{ padding:10px 18px 10px; }
 
-    .top-nav { background: white; padding: 15px 20px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
-    .m-icon { font-size: 24px; cursor: pointer; margin-right: 15px; }
-    
-    .side-drawer { height: 100%; width: 0; position: fixed; z-index: 1000; top: 0; left: 0; background: var(--primary); overflow-x: hidden; transition: 0.3s; padding-top: 60px; }
-    .side-drawer a { padding: 15px 25px; text-decoration: none; font-size: 18px; color: white; display: block; border-bottom: 1px solid #3e4f5f; }
-    .side-drawer .close-btn { position: absolute; top: 10px; right: 20px; font-size: 30px; color: white; cursor: pointer; }
+  .grid{ padding:0 18px; display:flex; flex-direction:column; gap:12px; }
 
-    .filter-section { background: rgba(255, 255, 255, 0.9); padding: 15px; text-align: center; border-bottom: 1px solid #ddd; }
-    .search-box, .area-select { padding: 10px; border-radius: 8px; border: 1px solid #ccc; margin: 5px; width: 90%; max-width: 300px; }
-    
-    .filter-btn { padding: 8px 16px; margin: 4px; border: 1.5px solid var(--accent); background: white; color: var(--accent); border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.3s; }
-    .filter-btn.active { background: var(--accent); color: white; }
+  .worker-card{ opacity:0; transform:translateY(10px); animation:rise .4s cubic-bezier(.2,.8,.2,1) forwards; }
 
-    .container { max-width: 1100px; margin: auto; padding: 20px; }
-    .worker-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
-    
-    .worker-card { background: white; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); transition: 0.3s; display: flex; flex-direction: column; justify-content: space-between; }
-    .profile-icon { font-size: 40px; margin-bottom: 10px; }
-    .worker-name { font-size: 1.2rem; font-weight: bold; margin: 5px 0; color: var(--primary); }
-    .stars { color: #f1c40f; margin-bottom: 5px; display: block; }
-    
-    .qualification-tag { font-size: 11px; color: var(--accent); background: #ebf5fb; padding: 4px 10px; border-radius: 15px; display: inline-block; margin-bottom: 15px; font-weight: 600; text-transform: uppercase; }
+  .card-head{ display:flex; align-items:center; gap:12px; padding-right:34px; }
+  .card-head .avatar{ width:46px; height:46px; font-size:16px; }
+  .name{ font-weight:700; font-size:15px; color:var(--ink); }
+  .role{ font-size:12px; color:var(--muted); margin-top:1px; }
 
-    .view-btn { background: none; border: 1px solid var(--accent); color: var(--accent); padding: 8px; width: 100%; border-radius: 5px; cursor: pointer; font-weight: bold; }
-    .details { display: none; padding-top: 15px; text-align: left; font-size: 14px; border-top: 1px solid #eee; margin-top: 10px; }
-    .details p { margin: 8px 0; line-height: 1.4; }
-    
-    .book-btn { background: var(--success); color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; margin-top: 10px; cursor: pointer; font-weight: bold; }
-    .book-btn:hover { background: #038d5a; }
-    
-    .olay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500; }
-  </style>
+  .card-foot{ display:flex; align-items:center; justify-content:space-between; margin-top:12px; }
+  .stars{ color:var(--gold); font-size:13px; }
+  .jobs{ font-size:11px; color:var(--muted); margin-left:6px; }
+  .rate{ font-family:Consolas,'Courier New',monospace; font-weight:700; font-size:14px; color:var(--ink); }
+  .rate small{ color:var(--muted); font-weight:400; }
+
+  .expand-btn{ width:100%; margin-top:12px; }
+  .details{ max-height:0; overflow:hidden; transition:max-height .3s cubic-bezier(.2,.8,.2,1); }
+  .details.open{ max-height:180px; margin-top:12px; }
+  .details-inner{ border-top:1px solid var(--line); padding-top:12px; font-size:12.5px; line-height:1.5; color:var(--ink); }
+  .details-inner b{ color:var(--muted); font-weight:600; }
+  .book-btn{ width:100%; margin-top:12px; padding:12px; border:none; border-radius:10px; background:var(--teal); color:#06201d; font-weight:800; font-size:13px; cursor:pointer; }
+
+  .skel{ height:98px; padding:16px; }
+  .skel-row{ display:flex; gap:12px; align-items:center; }
+  .skel-circle{ width:46px; height:46px; border-radius:50%; }
+  .skel-line{ height:10px; border-radius:4px; margin-bottom:6px; }
+</style>
 </head>
 <body>
+  <div class="phone">
+    <header class="topbar">
+      <div class="brand-mark">✓</div>
+      <div>
+        <div class="brand-name">Pro Fix</div>
+        <div class="brand-sub">Verified trade network — Gqeberha</div>
+      </div>
+    </header>
 
-  <div class="top-nav">
-    <span class="m-icon" onclick="openNav()">&#9776;</span>
-    <b style="font-size: 20px;">PRO FIX</b>
+    <div class="search-row"><input id="searchInput" class="text-input" placeholder="Search by name or trade"></div>
+    <nav class="chip-row" id="chipRow"></nav>
+    <main class="grid" id="grid"></main>
   </div>
 
-  <div id="myDrawer" class="side-drawer">
-    <span class="close-btn" onclick="closeNav()">&times;</span>
-    <a href="Workend.html">Home</a>
-    <a href="{{ url_for('profile') }}">Profile</a>
+  <div class="toast" id="toast"></div>
 
-  </div>
+  <nav class="tabbar">
+    <button class="tab" data-tab="feed">🏠<span>Feed</span><span class="tab-dot"></span></button>
+    <a class="tab" data-tab="profile" href="{{ url_for('profile') }}">👤<span>Profile</span><span class="tab-dot"></span></a>
+  </nav>
 
-  <div id="mOverlay" class="olay" onclick="closeNav()"></div>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
 
-  <div class="filter-section">
-    <input type="text" id="workerSearch" class="search-box" placeholder="Search name..." onkeyup="applyFilters()">
-    <select id="areaFilter" class="area-select" onchange="applyFilters()">
-      <option value="all">All Areas</option>
-      <option value="central">Central</option>
-      <option value="north">Summerstrand</option>
-      <option value="south">Bluewater Bay</option>
-      <option value="west">West Coast</option>
-    </select>
+  const catColor = { electrician:'#F2B705', plumber:'#3DA9FC', repair:'#E2703A', ict:'#9B8CFF' };
+  const categories = [
+    {id:'all',label:'All'},{id:'electrician',label:'Electricians'},{id:'plumber',label:'Plumbers'},
+    {id:'repair',label:'Repairs'},{id:'ict',label:'ICT Support'},
+  ];
 
-    <div id="categoryBtns">
-      <button class="filter-btn active" onclick="setCategory('all', this)">All</button>
-      <button class="filter-btn" onclick="setCategory('electrician', this)">Electricians</button>
-      <button class="filter-btn" onclick="setCategory('plumber', this)">Plumbers</button>
-      <button class="filter-btn" onclick="setCategory('repair', this)">Repairs</button>
-      <button class="filter-btn" onclick="setCategory('ict', this)">ICT Support</button>
-    </div>
-  </div>
+  let activeCategory='all', searchTerm='', openCard=null;
 
-  <div class="container">
-    <div class="worker-grid" id="workerGrid">
-      
-      <div class="worker-card" data-category="electrician" data-area="central">
-        <div>
-            <div class="profile-icon">⚡</div>
-            <div class="worker-name">Jonny Mand</div>
-            <span class="stars">★★★★★</span>
-            <div class="qualification-tag">Certified Master Electrician</div>
+  function renderChips(){
+    const row=document.getElementById('chipRow'); row.innerHTML='';
+    categories.forEach(c=>{
+      const chip=document.createElement('button');
+      chip.className='chip'+(c.id===activeCategory?' active':'');
+      chip.textContent=c.label;
+      chip.onclick=()=>{ activeCategory=c.id; renderChips(); renderGrid(); };
+      row.appendChild(chip);
+    });
+  }
+
+  function matches(w){
+    return (activeCategory==='all'||w.category===activeCategory) && w.name.toLowerCase().includes(searchTerm.toLowerCase());
+  }
+
+  function renderGrid(){
+    const grid=document.getElementById('grid');
+    const list=workers.filter(matches);
+    grid.innerHTML='';
+    if(list.length===0){ grid.innerHTML='<div class="empty">No pros match that search.<br>Try a different trade.</div>'; return; }
+    list.forEach((w,i)=>{
+      const card=document.createElement('div');
+      card.className='card worker-card';
+      card.style.animationDelay=(i*45)+'ms';
+      card.innerHTML=`
+        <div class="hex ${w.verified?'':'dim'}" data-id="${w.id}" title="Verification">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="${w.verified?'#06201d':'#8994A6'}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <button class="view-btn" onclick="toggleDetails('d1')">View Info</button>
-        <div id="d1" class="details">
-          <p><b>Area:</b> Central</p>
-          <p><b>Rate:</b> R450/hr</p>
-          <p><b>Certifications:</b> Wireman's License, N6 Electrical Engineering.</p>
-          <button class="book-btn" onclick="location.href='Workend8.html'">Book Now</button>
+        <div class="card-head">
+          <div class="avatar" style="background:${catColor[w.category]}">${initials(w.name)}</div>
+          <div>
+            <div class="name">${w.name}</div>
+            <div class="role">${w.label} · ${w.area}</div>
+          </div>
         </div>
-      </div>
+        <div class="card-foot">
+          <div><span class="stars">${'★'.repeat(w.rating)}${'☆'.repeat(5-w.rating)}</span><span class="jobs">${w.jobs} jobs</span></div>
+          <div class="rate">R${w.rate}<small>/hr</small></div>
+        </div>
+        <button class="btn-ghost expand-btn" data-id="${w.id}">View details</button>
+        <div class="details" id="details-${w.id}">
+          <div class="details-inner">
+            <div><b>Certifications:</b> ${w.certs}</div>
+            <button class="book-btn" data-name="${w.name}">Book ${w.name.split(' ')[0]}</button>
+          </div>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
 
-      <div class="worker-card" data-category="plumber" data-area="north">
-        <div>
-            <div class="profile-icon">🔧</div>
-            <div class="worker-name">Logan Smith</div>
-            <span class="stars">★★★★☆</span>
-            <div class="qualification-tag">Licensed PIRB Plumber</div>
-        </div>
-        <button class="view-btn" onclick="toggleDetails('d2')">View Info</button>
-        <div id="d2" class="details">
-          <p><b>Area:</b> Summerstrand</p>
-          <p><b>Rate:</b> R380/hr</p>
-          <p><b>Certifications:</b> Red Seal Plumbing, PIRB Registered.</p>
-          <button class="book-btn" onclick="location.href='Workend8.html'">Book Now</button>
-        </div>
-      </div>
+    grid.querySelectorAll('.expand-btn').forEach(btn=>{
+      btn.onclick=()=>toggleDetails(btn.dataset.id);
+    });
+    grid.querySelectorAll('.hex').forEach(hex=>{
+      hex.onclick=()=>{
+        const w = workers.find(x=>x.id==hex.dataset.id);
+        showToast(w.verified ? `✓ ${w.name} — ID checked, insured, background cleared` : `${w.name} hasn't completed verification yet`);
+      };
+    });
+    grid.querySelectorAll('.book-btn').forEach(btn=>{
+      btn.onclick=()=>showToast(`Booking request sent to ${btn.dataset.name}`);
+    });
+  }
 
-      <div class="worker-card" data-category="repair" data-area="west">
-        <div>
-            <div class="profile-icon">🛠️</div>
-            <div class="worker-name">Kevin Kane</div>
-            <span class="stars">★★★★★</span>
-            <div class="qualification-tag">Multi-Skilled Technician</div>
-        </div>
-        <button class="view-btn" onclick="toggleDetails('d4')">View Info</button>
-        <div id="d4" class="details">
-          <p><b>Area:</b> West Coast</p>
-          <p><b>Rate:</b> R300/hr</p>
-          <p><b>Certifications:</b> Basic Construction Diploma, 10+ Years Exp.</p>
-          <button class="book-btn" onclick="location.href='Workend8.html'">Book Now</button>
-        </div>
-      </div>
-
-      <div class="worker-card" data-category="ict" data-area="central">
-        <div>
-            <div class="profile-icon">💻</div>
-            <div class="worker-name">Sarah Moodley</div>
-            <span class="stars">★★★★★</span>
-            <div class="qualification-tag">MICT SETA Certified IT Tech</div>
-        </div>
-        <button class="view-btn" onclick="toggleDetails('d5')">View Info</button>
-        <div id="d5" class="details">
-          <p><b>Area:</b> Central</p>
-          <p><b>Rate:</b> R550/hr</p>
-          <p><b>Certifications:</b> CompTIA N+, MICT SETA NQF Level 5 (Systems Support).</p>
-          <button class="book-btn" onclick="location.href='Workend8.html'">Book Now</button>
-        </div>
-      </div>
-
-      <div class="worker-card" data-category="ict" data-area="south">
-        <div>
-            <div class="profile-icon">📡</div>
-            <div class="worker-name">Thabo Mbeki</div>
-            <span class="stars">★★★★☆</span>
-            <div class="qualification-tag">Fiber Optics Specialist</div>
-        </div>
-        <button class="view-btn" onclick="toggleDetails('d6')">View Info</button>
-        <div id="d6" class="details">
-          <p><b>Area:</b> Bluewater Bay</p>
-          <p><b>Rate:</b> R420/hr</p>
-          <p><b>Certifications:</b> FOA Certified Fiber Tech, MICT Accredited Diploma.</p>
-          <button class="book-btn" onclick="location.href='Workend8.html'">Book Now</button>
-        </div>
-      </div>
-
-      <div class="worker-card" data-category="ict" data-area="west">
-        <div>
-            <div class="profile-icon">🖱️</div>
-            <div class="worker-name">Elena Rodriguez</div>
-            <span class="stars">★★★★★</span>
-            <div class="qualification-tag">ICT Systems Administrator</div>
-        </div>
-        <button class="view-btn" onclick="toggleDetails('d7')">View Info</button>
-        <div id="d7" class="details">
-          <p><b>Area:</b> West Coast</p>
-          <p><b>Rate:</b> R480/hr</p>
-          <p><b>Certifications:</b> Microsoft MCSA, MICT SETA End User Computing L4.</p>
-          <button class="book-btn" onclick="location.href='Workend8.html'">Book Now</button>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <script>
-    let currentCat = 'all';
-
-    function openNav() { document.getElementById("myDrawer").style.width = "250px"; document.getElementById("mOverlay").style.display = "block"; }
-    function closeNav() { document.getElementById("myDrawer").style.width = "0"; document.getElementById("mOverlay").style.display = "none"; }
-    
-    function toggleDetails(id) {
-      const el = document.getElementById(id);
-      el.style.display = (el.style.display === "block") ? "none" : "block";
+  function toggleDetails(id){
+    const el=document.getElementById('details-'+id);
+    if(openCard && openCard!==id){
+      const prev=document.getElementById('details-'+openCard);
+      if(prev) prev.classList.remove('open');
     }
+    el.classList.toggle('open');
+    openCard = el.classList.contains('open') ? id : null;
+  }
 
-    function setCategory(cat, btn) {
-      currentCat = cat;
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      applyFilters();
-    }
+  document.getElementById('searchInput').addEventListener('input', e=>{ searchTerm=e.target.value; renderGrid(); });
 
-    function applyFilters() {
-      const search = document.getElementById('workerSearch').value.toLowerCase();
-      const area = document.getElementById('areaFilter').value;
-      
-      document.querySelectorAll('.worker-card').forEach(card => {
-        const nameMatch = card.querySelector('.worker-name').innerText.toLowerCase().includes(search);
-        const catMatch = currentCat === 'all' || card.dataset.category === currentCat;
-        const areaMatch = area === 'all' || card.dataset.area === area;
-        
-        card.style.display = (nameMatch && catMatch && areaMatch) ? "flex" : "none";
-      });
+  function showSkeleton(){
+    const grid=document.getElementById('grid'); grid.innerHTML='';
+    for(let i=0;i<4;i++){
+      const s=document.createElement('div');
+      s.className='card skel';
+      s.innerHTML=`<div class="skel-row"><div class="skel-circle skel-shimmer"></div><div style="flex:1"><div class="skel-line skel-shimmer" style="width:50%"></div><div class="skel-line skel-shimmer" style="width:35%"></div></div></div>`;
+      grid.appendChild(s);
     }
-  </script>
+  }
+
+  wireTabBar('feed');
+  renderChips();
+  showSkeleton();
+  setTimeout(renderGrid, 600);
+</script>
 </body>
 </html>

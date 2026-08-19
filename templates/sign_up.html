@@ -1,199 +1,107 @@
-
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Fix - Sign Up</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            display: flex;
-            flex-direction: column; /* Stack header buttons and form */
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pro Fix — Sign Up</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+<style>
+  body{ display:flex; justify-content:center; padding:36px 0; }
+  .phone{ padding-bottom:36px; }
+  .topbar{ flex-direction:column; align-items:center; text-align:center; padding:0 18px 22px; }
+  .brand-mark{ margin-bottom:10px; }
 
-      
-        .toggle-container {
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-        }
+  .segmented{ margin:0 18px 20px; }
 
-        .toggle-btn {
-            padding: 10px 25px;
-            font-size: 16px;
-            cursor: pointer;
-            border: 2px solid #3498db;
-            background: white;
-            color: #3498db;
-            border-radius: 5px;
-            font-weight: bold;
-            transition: 0.3s;
-        }
+  .form-card{ margin:0 18px; display:none; }
+  .form-card.show{ display:block; }
 
-        .toggle-btn.active {
-            background-color: #3498db;
-            color: white;
-        }
-
-        
-        .form-card {
-            background: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 400px;
-            display: none; 
-        }
-
-     
-        .form-card.show {
-            display: block;
-        }
-
-        .form-card h2 {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 25px;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 10px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #333;
-        }
-
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-sizing: border-box;
-            font-size: 14px;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        input[type="submit"] {
-            flex: 2;
-            background-color: #04AA6D;
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        input[type="reset"] {
-            flex: 1;
-            background-color: #e74c3c;
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-    </style>
+  .btn-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:18px; }
+  .btn-row .btn-primary{ flex:1; }
+</style>
 </head>
 <body>
 
-    <div class="toggle-container">
-              <button class="toggle-btn active" onclick="showForm('client', this)">Client</button>
-        <button class="toggle-btn" onclick="showForm('worker', this)">Worker</button>
+  <div class="phone">
+    <header class="topbar">
+      <div class="brand-mark">✓</div>
+      <div class="brand-name">Pro Fix</div>
+      <div class="brand-sub">Create your account</div>
+    </header>
+
+    <nav class="segmented">
+      <button type="button" class="active" onclick="showForm('client', this)">Client</button>
+      <button type="button" onclick="showForm('worker', this)">Worker</button>
+    </nav>
+
+    <div id="clientForm" class="form-card card show">
+      <form action="/sign_up" method="post">
+        <div class="field-group">
+          <label class="field-label">Name</label>
+          <input class="text-input" type="text" name="Name" placeholder="Enter name" required>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Surname</label>
+          <input class="text-input" type="text" name="Surname" placeholder="Enter surname" required>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Email</label>
+          <input class="text-input" type="email" name="Email" placeholder="Enter email" required>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Password</label>
+          <input class="text-input" type="password" name="Password" placeholder="Enter password" required>
+        </div>
+        <div class="btn-row">
+          <input type="submit" class="btn-primary" value="Sign up as client">
+        </div>
+        <div style="text-align:center; margin-top:12px;">
+          <input type="reset" class="btn-text" value="Clear form">
+        </div>
+      </form>
     </div>
 
-    <div id="clientForm" class="form-card show">
-        <h2>PRO FIX - Client</h2>
-        <form action="/sign_up" method="post">
-            <div class="form-group">
-                <label>Name</label>
-                <input type="text" name="Name" placeholder="Enter Name" required>
-            </div>
-            <div class="form-group">
-                <label>Surname</label>
-                <input type="text" name="Surname" placeholder="Enter Surname" required>
-            </div>
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" name="Email" placeholder="Enter Email" required>
-            </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" name="Password" placeholder="Enter Password" required>
-            </div>
-            <div class="btn-group">
-                <input type="reset" value="Reset">
-                <input type="submit" value="Sign Up as Client">
-            </div>
-        </form>
+    <div id="workerForm" class="form-card card">
+      <form action="/send_freelancer_data" method="post">
+        <div class="field-group">
+          <label class="field-label">Name</label>
+          <input class="text-input" type="text" name="Name" placeholder="Enter name" required>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Profession</label>
+          <input class="text-input" type="text" name="Profession" placeholder="e.g. Plumber, Electrician" required>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Email</label>
+          <input class="text-input" type="email" name="Email" placeholder="Enter email" required>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Password</label>
+          <input class="text-input" type="password" name="Password" placeholder="Enter password" required>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Qualification</label>
+          <input class="text-input" type="text" name="Qualification" placeholder="Enter qualification or certificate">
+        </div>
+        <div class="btn-row">
+          <input type="submit" class="btn-primary" value="Sign up as worker">
+        </div>
+        <div style="text-align:center; margin-top:12px;">
+          <input type="reset" class="btn-text" value="Clear form">
+        </div>
+      </form>
     </div>
+  </div>
 
-    <div id="workerForm" class="form-card">
-        <h2>PRO FIX - Worker</h2>
-        <form action="/send_freelancer_data" method="post">
-            <div class="form-group">
-                <label>Name</label>
-                <input type="text" name="Name" placeholder="Enter Name" required>
-            </div>
-            <div class="form-group">
-                <label>Profession</label>
-                <input type="text" name="Profession" placeholder="e.g. Plumber, Electrician" required>
-            </div>
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" name="Email" placeholder="Enter Email" required>
-            </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" name="Password" placeholder="Enter Password" required>
-            </div>
-		<div class="form-group">
-			<label>Qualification</label>
-			<input type="text" name="Qualification" placeholder="Enter Qualification or certificate">
-			</div>
-            <div class="btn-group">
-                <input type="reset" value="Reset">
-                <input type="submit" value="Sign Up as Worker">
-            </div>
-        </form>
-    </div>
+<script>
+  function showForm(type, btn){
+    document.getElementById('clientForm').classList.remove('show');
+    document.getElementById('workerForm').classList.remove('show');
+    document.querySelectorAll('.segmented button').forEach(b => b.classList.remove('active'));
 
-    <script>
-        function showForm(type, btn) {
-            
-            document.getElementById('clientForm').classList.remove('show');
-            document.getElementById('workerForm').classList.remove('show');
-
-           
-            let buttons = document.querySelectorAll('.toggle-btn');
-            buttons.forEach(b => b.classList.remove('active'));
-
-            
-            if (type === 'client') {
-                document.getElementById('clientForm').classList.add('show');
-            } else {
-                document.getElementById('workerForm').classList.add('show');
-            }
-            btn.classList.add('active');
-        }
-    </script>
-
+    document.getElementById(type === 'client' ? 'clientForm' : 'workerForm').classList.add('show');
+    btn.classList.add('active');
+  }
+</script>
 </body>
 </html>
