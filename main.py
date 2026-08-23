@@ -1,7 +1,8 @@
 import firebase_admin
 from firebase_admin import credentials
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 import requests
+from firebase_admin import auth 
 
 # --- Firebase Initialization ---
 cred = credentials.Certificate("firebase.json")
@@ -77,5 +78,25 @@ def send_freelancer_data():
 def profile():
     return render_template("Customer_Profile.html")
 
-if __name__ == "__main__":
-     app.run(debug=True)
+# User Authentication - create a custom token for the signed-up UID and return it
+# as JSON so the frontend can call signInWithCustomToken(auth, customToken)
+@app.route('/sessionLogin', methods=['POST'])
+def session_token():
+    data = request.get_json(silent=True) or {}
+    uid 
+    uid = data.get("uid")
+    
+    custom_token = auth.create_custom_token(uid)
+
+    if not uid:
+        return jsonify({"error": "uid is required"}), 400
+
+    
+    if isinstance(custom_token, (bytes, bytearray)):
+        custom_token = custom_token.decode("utf-8")
+
+    return jsonify({
+        "customToken": custom_token,
+        "token": custom_token,
+        "custom_token": custom_token,
+    })
