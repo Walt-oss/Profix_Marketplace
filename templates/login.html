@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pro Fix — Login</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+<style>
+  body{ display:flex; justify-content:center; padding:36px 0; }
+  .login-card{ margin:0 18px; }
+  .login-row{ margin-top:16px; display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; color:var(--muted); font-size:12.5px; }
+  .login-row .btn-ghost{ min-width:128px; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="phone">
+    <header class="topbar" style="flex-direction:column; align-items:center; text-align:center; padding-bottom:18px;">
+      <div class="brand-mark">✓</div>
+      <div class="brand-name">Pro Fix</div>
+      <div class="brand-sub">Welcome back</div>
+    </header>
+
+    <div class="card login-card">
+      <form action="{{ url_for('login_page') }}" method="post">
+        <div class="field-group">
+          <label class="field-label">Email</label>
+          <input class="text-input" type="email" name="Email" placeholder="Enter your email" required>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Password</label>
+          <input class="text-input" type="password" name="Password" placeholder="Enter your password" required>
+        </div>
+        <button type="submit" class="btn-primary">Login</button>
+      </form>
+    </div>
+
+    <div class="login-row">
+      <span>New here?</span>
+      <a class="btn-ghost" href="{{ url_for('sign_up') }}">Create account</a>
+    </div>
+  </div>
+</body>
+</html>

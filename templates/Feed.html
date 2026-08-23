@@ -129,7 +129,9 @@
       };
     });
     grid.querySelectorAll('.book-btn').forEach(btn=>{
-      btn.onclick=()=>showToast(`Booking request sent to ${btn.dataset.name}`);
+      btn.onclick=()=>{
+        window.location.href = "{{ url_for('chat_window') }}";
+      };
     });
   }
 

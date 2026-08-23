@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pro Fix — Booking Chat</title>
+<style>
+  :root{
+    --ink:#EAF0F2; --bg:#0B1220; --card:#141B2C; --card-2:#1B2338;
+    --teal:#22D3C0; --teal-deep:#0B5D6B; --teal-tint:rgba(34,211,192,0.14);
+    --mint:#34D399; --gold:#E3B94D; --danger:#FF6B6B; --muted:#8994A6; --line:#212B40;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; color:var(--ink);
+    background:radial-gradient(circle at 50% -10%, #101b33, var(--bg) 60%);
+    font-family:-apple-system,"Segoe UI",Roboto,sans-serif;
+    min-height:100vh; display:flex; justify-content:center; padding:24px 0 92px;
+  }
+  .phone{ width:100%; max-width:420px; }
+  .topbar{ padding:16px 18px 6px; display:flex; align-items:center; gap:10px; }
+  .brand-mark{ width:36px;height:36px;border-radius:10px; background:linear-gradient(160deg,var(--teal),var(--teal-deep)); color:#06201d; box-shadow:0 0 12px rgba(34,211,192,0.3); display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px; }
+  .brand-name{ font-weight:800; font-size:19px; }
+  .brand-sub{ font-size:11px; color:var(--muted); margin-top:1px; }
+  .grid{ padding:14px 18px; display:flex; flex-direction:column; gap:12px; }
+  .card{ position:relative; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; }
+  .card-head{ display:flex; align-items:center; gap:12px; }
+  .avatar{ width:46px;height:46px;border-radius:50%; display:flex;align-items:center;justify-content:center; color:#0B1220; font-weight:700; font-size:16px; flex:none; }
+  .name{ font-weight:700; font-size:15px; }
+  .role{ font-size:12px; color:var(--muted); margin-top:1px; }
+  .card-foot{ display:flex; align-items:center; justify-content:space-between; margin-top:12px; }
+  .stars{ color:var(--gold); font-size:13px; }
+  .rate{ font-family:Consolas,monospace; font-weight:700; font-size:14px; }
+  .rate small{ color:var(--muted); font-weight:400; }
+  .book-btn{ width:100%; margin-top:12px; padding:12px; border:none; border-radius:10px; background:var(--teal); color:#06201d; font-weight:800; font-size:13px; cursor:pointer; }
+
+  /* ---------- Chat overlay ---------- */
+  .chat-backdrop{
+    position:fixed; inset:0; background:var(--bg); z-index:500;
+    display:flex; justify-content:center; opacity:0; pointer-events:none; transition:opacity .25s ease;
+  }
+  .chat-backdrop.open{ opacity:1; pointer-events:auto; }
+  .chat-panel{
+    width:100%; max-width:420px; height:100%; display:flex; flex-direction:column;
+    background:var(--bg); transform:translateY(24px); transition:transform .3s cubic-bezier(.2,.8,.2,1);
+  }
+  .chat-backdrop.open .chat-panel{ transform:translateY(0); }
+
+  .chat-header{ display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line); background:var(--card); flex:none; }
+  .icon-btn{ width:34px;height:34px; border-radius:50%; border:none; background:var(--card-2); color:var(--ink); font-size:16px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; }
+  .chat-avatar{ width:38px;height:38px;border-radius:50%; display:flex;align-items:center;justify-content:center; color:#0B1220; font-weight:700; font-size:14px; flex:none; }
+  .chat-name{ font-weight:700; font-size:14.5px; }
+  .chat-status{ font-size:11px; color:var(--muted); display:flex; align-items:center; gap:5px; margin-top:1px; }
+  .status-dot{ width:6px;height:6px;border-radius:50%; background:var(--mint); box-shadow:0 0 6px rgba(52,211,153,0.6); }
+
+  .chat-thread{ flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; }
+  .msg-row{ display:flex; flex-direction:column; }
+  .msg{ max-width:78%; padding:10px 13px; border-radius:16px; font-size:13.5px; line-height:1.45; }
+  .msg.me{ align-self:flex-end; background:var(--teal); color:#06201d; border-bottom-right-radius:4px; }
+  .msg.them{ align-self:flex-start; background:var(--card); border:1px solid var(--line); color:var(--ink); border-bottom-left-radius:4px; }
+  .msg.system{ align-self:center; font-size:10.5px; color:var(--muted); background:none; padding:2px 10px; text-align:center; }
+  .msg.paid-confirm{ align-self:center; font-size:11.5px; color:var(--mint); background:rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.25); border-radius:20px; padding:6px 14px; font-weight:700; }
+
+  .file-chip{ display:flex; align-items:center; gap:8px; padding:7px 9px; border-radius:10px; background:rgba(6,32,29,0.15); cursor:pointer; margin-top:6px; }
+  .msg.them .file-chip{ background:var(--card-2); }
+  .file-chip:first-child{ margin-top:0; }
+  .file-chip-icon{ font-size:16px; flex:none; }
+  .file-chip-name{ font-size:12px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:150px; }
+  .file-chip-size{ font-size:10px; opacity:.75; }
+  .img-thumb{ width:150px; border-radius:10px; display:block; margin-top:4px; cursor:pointer; }
+  .img-thumb:first-child{ margin-top:0; }
+
+  .quote-card{ align-self:flex-start; max-width:82%; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; }
+  .quote-label{ font-size:10px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); font-weight:700; }
+  .quote-desc{ font-size:13px; margin:6px 0 10px; line-height:1.4; }
+  .quote-amount{ font-family:Consolas,monospace; font-size:20px; font-weight:800; color:var(--teal); }
+  .quote-pay-btn{ margin-top:10px; width:100%; padding:11px; border:none; border-radius:10px; background:var(--teal); color:#06201d; font-weight:800; font-size:13px; cursor:pointer; }
+  .quote-pay-btn.paid{ background:var(--card-2); color:var(--mint); cursor:default; }
+
+  .typing{ align-self:flex-start; background:var(--card); border:1px solid var(--line); border-radius:16px; border-bottom-left-radius:4px; padding:12px 14px; display:flex; gap:4px; }
+  .typing span{ width:6px;height:6px;border-radius:50%; background:var(--muted); animation:bounce 1.2s infinite; }
+  .typing span:nth-child(2){ animation-delay:.15s; }
+  .typing span:nth-child(3){ animation-delay:.3s; }
+  @keyframes bounce{ 0%,60%,100%{ transform:translateY(0); opacity:.5; } 30%{ transform:translateY(-4px); opacity:1; } }
+
+  .staged-files{ display:flex; gap:8px; padding:10px 12px; overflow-x:auto; border-top:1px solid var(--line); background:var(--card); flex:none; }
+  .staged-file{ position:relative; width:56px;height:56px; border-radius:10px; overflow:hidden; background:var(--card-2); flex:none; display:flex; align-items:center; justify-content:center; }
+  .staged-file img{ width:100%; height:100%; object-fit:cover; }
+  .staged-file .ext{ font-size:9px; font-weight:700; color:var(--muted); text-align:center; padding:0 4px; }
+  .staged-remove{ position:absolute; top:-4px; right:-4px; width:18px;height:18px; border-radius:50%; background:var(--danger); color:#fff; border:none; font-size:11px; line-height:1; cursor:pointer; }
+
+  .chat-input-bar{ display:flex; align-items:center; gap:8px; padding:10px 12px; border-top:1px solid var(--line); background:var(--card); flex:none; }
+  .chat-text-input{ flex:1; padding:11px 14px; border-radius:20px; border:1px solid var(--line); background:var(--card-2); color:var(--ink); font-size:13.5px; font-family:inherit; }
+  .chat-text-input:focus{ outline:none; border-color:var(--teal); }
+  .send-btn{ width:38px;height:38px; border-radius:50%; border:none; background:var(--teal); color:#06201d; font-size:15px; cursor:pointer; flex:none; }
+  .send-btn:disabled{ background:var(--card-2); color:var(--muted); cursor:default; }
+
+  /* ---------- Payment sheet ---------- */
+  .sheet-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:600; opacity:0; pointer-events:none; transition:opacity .25s ease; }
+  .sheet-overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{ position:fixed; left:50%; bottom:0; transform:translate(-50%,100%); width:100%; max-width:420px; background:var(--card-2); border-radius:20px 20px 0 0; z-index:601; padding:10px 20px 26px; transition:transform .3s cubic-bezier(.2,.8,.2,1); }
+  .sheet.show{ transform:translate(-50%,0); }
+  .sheet-handle{ width:36px;height:4px; background:var(--line); border-radius:2px; margin:6px auto 16px; cursor:pointer; }
+  .pay-amount{ text-align:center; padding:6px 0 16px; }
+  .pay-amount .to{ font-size:12px; color:var(--muted); }
+  .pay-amount .num{ font-family:Consolas,monospace; font-size:32px; font-weight:800; margin-top:4px; }
+  .pay-row{ display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-top:1px solid var(--line); font-size:13px; }
+  .pay-method{ display:flex; align-items:center; gap:10px; }
+  .card-icon{ width:34px;height:24px; border-radius:5px; background:linear-gradient(135deg,var(--teal),var(--teal-deep)); display:flex; align-items:center; justify-content:center; font-size:11px; color:#06201d; font-weight:800; }
+  .confirm-pay-btn{ width:100%; margin-top:18px; padding:14px; border:none; border-radius:12px; background:var(--teal); color:#06201d; font-weight:800; font-size:14px; cursor:pointer; }
+  .confirm-pay-btn:disabled{ opacity:.6; }
+  .pay-disclaimer{ font-size:10px; color:var(--muted); text-align:center; margin-top:10px; line-height:1.4; }
+
+  .toast{ position:fixed; left:50%; bottom:20px; transform:translate(-50%,20px); background:var(--card); color:var(--ink); border:1px solid var(--line); padding:12px 18px; border-radius:12px; font-size:12.5px; font-weight:600; max-width:320px; text-align:center; opacity:0; pointer-events:none; transition:all .25s ease; z-index:700; }
+  .toast.show{ opacity:1; transform:translate(-50%,0); }
+</style>
+</head>
+<body>
+  <div class="phone">
+    <header class="topbar">
+      <div class="brand-mark">✓</div>
+      <div>
+        <div class="brand-name">Pro Fix</div>
+        <div class="brand-sub">Verified trade network</div>
+      </div>
+    </header>
+    <main class="grid" id="grid"></main>
+  </div>
+
+  <!-- Chat overlay -->
+  <div class="chat-backdrop" id="chatBackdrop">
+    <div class="chat-panel">
+      <div class="chat-header">
+        <button class="icon-btn" id="chatBack">←</button>
+        <div class="chat-avatar" id="chatAvatar"></div>
+        <div>
+          <div class="chat-name" id="chatName"></div>
+          <div class="chat-status"><span class="status-dot"></span>Online now</div>
+        </div>
+      </div>
+      <div class="chat-thread" id="chatThread"></div>
+      <div class="staged-files" id="stagedFiles" style="display:none;"></div>
+      <div class="chat-input-bar">
+        <button class="icon-btn" id="attachBtn" title="Attach a file">📎</button>
+        <input type="file" id="fileInput" multiple style="display:none;">
+        <input type="text" id="chatInput" class="chat-text-input" placeholder="Describe what you need...">
+        <button class="send-btn" id="sendBtn" disabled>➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment sheet -->
+  <div class="sheet-overlay" id="paySheetOverlay"></div>
+  <div class="sheet" id="paySheet">
+    <div class="sheet-handle" id="paySheetHandle"></div>
+    <div id="paySheetContent"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  const workers = [
+    {id:1,name:"Jonny Mand",category:"electrician",label:"Electrician",area:"Central",rate:450,rating:5,
+      quoteDesc:"Kitchen circuit rewire + new distribution board install",quoteAmount:1850},
+    {id:2,name:"Logan Smith",category:"plumber",label:"Plumber",area:"Summerstrand",rate:380,rating:4,
+      quoteDesc:"Replace burst geyser pipe + pressure test",quoteAmount:920},
+    {id:3,name:"Sarah Moodley",category:"ict",label:"ICT Support",area:"Central",rate:550,rating:5,
+      quoteDesc:"Home network setup + mesh Wi-Fi install",quoteAmount:1350},
+  ];
+  const catColor = { electrician:'#F2B705', plumber:'#3DA9FC', repair:'#E2703A', ict:'#9B8CFF' };
+
+  function initials(n){ return n.split(' ').map(w=>w[0]).join(''); }
+  function formatSize(bytes){
+    if(bytes < 1024) return bytes + ' B';
+    if(bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+    return (bytes/1024/1024).toFixed(1) + ' MB';
+  }
+
+  function renderGrid(){
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    workers.forEach(w => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="card-head">
+          <div class="avatar" style="background:${catColor[w.category]}">${initials(w.name)}</div>
+          <div>
+            <div class="name">${w.name}</div>
+            <div class="role">${w.label} · ${w.area}</div>
+          </div>
+        </div>
+        <div class="card-foot">
+          <span class="stars">${'★'.repeat(w.rating)}${'☆'.repeat(5-w.rating)}</span>
+          <div class="rate">R${w.rate}<small>/hr</small></div>
+        </div>
+        <button class="book-btn" data-id="${w.id}">Book Now</button>
+      `;
+      grid.appendChild(card);
+    });
+    grid.querySelectorAll('.book-btn').forEach(btn=>{
+      btn.onclick = () => openChat(workers.find(x=>x.id==btn.dataset.id));
+    });
+  }
+
+  /* ---------------- Chat state ---------------- */
+  let currentWorker = null;
+  let messages = [];
+  let stagedFiles = [];   // { file, url, isImage }
+  let exchangeCount = 0;
+
+  function openChat(worker){
+    currentWorker = worker;
+    messages = [];
+    stagedFiles = [];
+    exchangeCount = 0;
+    document.getElementById('chatAvatar').textContent = initials(worker.name);
+    document.getElementById('chatAvatar').style.background = catColor[worker.category];
+    document.getElementById('chatName').textContent = worker.name;
+    document.getElementById('chatBackdrop').classList.add('open');
+
+    messages.push({ type:'system', text:`You started a conversation with ${worker.name} about ${worker.label.toLowerCase()} work in ${worker.area}.` });
+    renderThread();
+
+    showTyping();
+    setTimeout(() => {
+      hideTyping();
+      messages.push({ type:'them', text:`Hi! Thanks for reaching out. What do you need help with?` });
+      renderThread();
+    }, 1100);
+  }
+
+  function closeChat(){
+    document.getElementById('chatBackdrop').classList.remove('open');
+  }
+
+  function showTyping(){
+    const thread = document.getElementById('chatThread');
+    const el = document.createElement('div');
+    el.className = 'typing';
+    el.id = 'typingIndicator';
+    el.innerHTML = '<span></span><span></span><span></span>';
+    thread.appendChild(el);
+    thread.scrollTop = thread.scrollHeight;
+  }
+  function hideTyping(){
+    document.getElementById('typingIndicator')?.remove();
+  }
+
+  function renderThread(){
+    const thread = document.getElementById('chatThread');
+    thread.innerHTML = '';
+    messages.forEach((m, idx) => {
+      const row = document.createElement('div');
+      if(m.type === 'system'){
+        row.className = 'msg system';
+        row.textContent = m.text;
+      } else if(m.type === 'paid-confirm'){
+        row.className = 'msg paid-confirm';
+        row.textContent = m.text;
+      } else if(m.type === 'quote'){
+        row.className = 'quote-card';
+        row.innerHTML = `
+          <div class="quote-label">Job quote</div>
+          <div class="quote-desc">${m.desc}</div>
+          <div class="quote-amount">R${m.amount.toLocaleString()}</div>
+          <button class="quote-pay-btn ${m.paid ? 'paid' : ''}" data-idx="${idx}" ${m.paid ? 'disabled' : ''}>
+            ${m.paid ? '✓ Paid' : 'Review & Pay'}
+          </button>
+        `;
+      } else {
+        row.className = 'msg ' + m.type;
+        let html = m.text ? `<div>${m.text}</div>` : '';
+        (m.files || []).forEach(f => {
+          if(f.isImage){
+            html += `<img class="img-thumb" src="${f.url}" data-url="${f.url}">`;
+          } else {
+            html += `
+              <div class="file-chip" data-url="${f.url}">
+                <span class="file-chip-icon">📄</span>
+                <div>
+                  <div class="file-chip-name">${f.name}</div>
+                  <div class="file-chip-size">${formatSize(f.size)}</div>
+                </div>
+              </div>`;
+          }
+        });
+        row.innerHTML = html;
+      }
+      thread.appendChild(row);
+    });
+
+    thread.querySelectorAll('.quote-pay-btn:not([disabled])').forEach(btn=>{
+      btn.onclick = () => openPaySheet(parseInt(btn.dataset.idx));
+    });
+    thread.querySelectorAll('.img-thumb, .file-chip').forEach(el=>{
+      el.onclick = () => window.open(el.dataset.url, '_blank');
+    });
+
+    thread.scrollTop = thread.scrollHeight;
+  }
+
+  /* ---------------- Sending messages ---------------- */
+  function sendMessage(){
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if(!text && stagedFiles.length === 0) return;
+
+    messages.push({
+      type:'me',
+      text,
+      files: stagedFiles.map(f => ({ name:f.file.name, size:f.file.size, url:f.url, isImage:f.isImage }))
+    });
+    input.value = '';
+    stagedFiles = [];
+    renderStagedFiles();
+    updateSendButton();
+    renderThread();
+
+    exchangeCount++;
+    simulateReply();
+  }
+
+  function simulateReply(){
+    showTyping();
+    setTimeout(() => {
+      hideTyping();
+      if(exchangeCount === 1){
+        messages.push({ type:'them', text:`Got it — thanks for the details. Let me work out a quote for that.` });
+        renderThread();
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          messages.push({ type:'quote', desc: currentWorker.quoteDesc, amount: currentWorker.quoteAmount, paid:false });
+          renderThread();
+        }, 1400);
+      } else {
+        messages.push({ type:'them', text:`Noted, I'll bring what's needed for that.` });
+        renderThread();
+      }
+    }, 1200);
+  }
+
+  /* ---------------- File attach ---------------- */
+  function handleFileSelect(e){
+    Array.from(e.target.files).forEach(file => {
+      const isImage = file.type.startsWith('image/');
+      stagedFiles.push({ file, url: URL.createObjectURL(file), isImage });
+    });
+    e.target.value = '';
+    renderStagedFiles();
+    updateSendButton();
+  }
+
+  function renderStagedFiles(){
+    const wrap = document.getElementById('stagedFiles');
+    if(stagedFiles.length === 0){ wrap.style.display = 'none'; wrap.innerHTML=''; return; }
+    wrap.style.display = 'flex';
+    wrap.innerHTML = '';
+    stagedFiles.forEach((f, i) => {
+      const el = document.createElement('div');
+      el.className = 'staged-file';
+      if(f.isImage){
+        el.innerHTML = `<img src="${f.url}">`;
+      } else {
+        const ext = f.file.name.split('.').pop().toUpperCase().slice(0,4);
+        el.innerHTML = `<div class="ext">📄<br>${ext}</div>`;
+      }
+      const rm = document.createElement('button');
+      rm.className = 'staged-remove';
+      rm.textContent = '×';
+      rm.onclick = () => { stagedFiles.splice(i,1); renderStagedFiles(); updateSendButton(); };
+      el.appendChild(rm);
+      wrap.appendChild(el);
+    });
+  }
+
+  function updateSendButton(){
+    const hasText = document.getElementById('chatInput').value.trim().length > 0;
+    document.getElementById('sendBtn').disabled = !(hasText || stagedFiles.length > 0);
+  }
+
+  /* ---------------- Payment sheet ---------------- */
+  let payingIdx = null;
+
+  function openPaySheet(idx){
+    payingIdx = idx;
+    const quote = messages[idx];
+    document.getElementById('paySheetContent').innerHTML = `
+      <div class="pay-amount">
+        <div class="to">Paying ${currentWorker.name}</div>
+        <div class="num">R${quote.amount.toLocaleString()}</div>
+      </div>
+      <div class="pay-row"><span>For</span><span>${quote.desc}</span></div>
+      <div class="pay-row">
+        <div class="pay-method"><div class="card-icon">VISA</div><span>•••• 4242</span></div>
+        <button class="icon-btn" style="width:auto;height:auto;padding:4px 10px;border-radius:8px;font-size:11px;" id="changeCardBtn">Change</button>
+      </div>
+      <button class="confirm-pay-btn" id="confirmPayBtn">Pay R${quote.amount.toLocaleString()}</button>
+      <div class="pay-disclaimer">Demo checkout — no real card is charged. In production this must go through a PCI-compliant processor, never raw card fields sent to your own server.</div>
+    `;
+    document.getElementById('changeCardBtn').onclick = () => showToast('Demo only — payment method switching not wired up');
+    document.getElementById('confirmPayBtn').onclick = confirmPayment;
+    document.getElementById('paySheetOverlay').classList.add('show');
+    document.getElementById('paySheet').classList.add('show');
+  }
+
+  function closePaySheet(){
+    document.getElementById('paySheetOverlay').classList.remove('show');
+    document.getElementById('paySheet').classList.remove('show');
+  }
+
+  function confirmPayment(){
+    const btn = document.getElementById('confirmPayBtn');
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+    setTimeout(() => {
+      closePaySheet();
+      const quote = messages[payingIdx];
+      quote.paid = true;
+      messages.push({ type:'paid-confirm', text:`✓ Payment confirmed — R${quote.amount.toLocaleString()} sent to ${currentWorker.name}` });
+      renderThread();
+    }, 900);
+  }
+
+  /* ---------------- Wiring ---------------- */
+  document.getElementById('chatBack').onclick = closeChat;
+  document.getElementById('attachBtn').onclick = () => document.getElementById('fileInput').click();
+  document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+  document.getElementById('sendBtn').onclick = sendMessage;
+  document.getElementById('chatInput').addEventListener('input', updateSendButton);
+  document.getElementById('chatInput').addEventListener('keydown', e => { if(e.key === 'Enter') sendMessage(); });
+  document.getElementById('paySheetOverlay').onclick = closePaySheet;
+  document.getElementById('paySheetHandle').onclick = closePaySheet;
+
+  let toastTimer;
+  function showToast(msg){
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+  }
+
+  renderGrid();
+</script>
+</body>
+</html>

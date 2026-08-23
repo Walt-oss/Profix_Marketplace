@@ -17,6 +17,15 @@ DB_URL_A = "https://artisan-data.firebaseio.com/"
 def sign_up():
     return render_template("sign_up.html")
 
+@app.route("/login", methods=["GET", "POST"])
+def login_page():
+    if request.method == "POST":
+        email = request.form.get("Email")
+        password = request.form.get("Password")
+        print(f"Login attempt for {email} with password length {len(password) if password else 0}")
+        return render_template("Feed.html")
+    return render_template("login.html")
+
 # --- Sending Data to Realtime Database ---
 @app.route("/sign_up", methods=["POST"])
 def send_customer_data():
@@ -78,20 +87,24 @@ def send_freelancer_data():
 def profile():
     return render_template("Customer_Profile.html")
 
+# Chat window page opened from the feed when a user books a pro
+@app.route("/chat-window")
+@app.route("/chat")
+def chat_window():
+    return render_template("chat-window.html")
+
 # User Authentication - create a custom token for the signed-up UID and return it
 # as JSON so the frontend can call signInWithCustomToken(auth, customToken)
 @app.route('/sessionLogin', methods=['POST'])
 def session_token():
     data = request.get_json(silent=True) or {}
-    uid 
     uid = data.get("uid")
-    
-    custom_token = auth.create_custom_token(uid)
 
     if not uid:
         return jsonify({"error": "uid is required"}), 400
 
-    
+    custom_token = auth.create_custom_token(uid)
+
     if isinstance(custom_token, (bytes, bytearray)):
         custom_token = custom_token.decode("utf-8")
 
@@ -100,3 +113,6 @@ def session_token():
         "token": custom_token,
         "custom_token": custom_token,
     })
+    
+if __name__ == '__main__':
+    app.run() 

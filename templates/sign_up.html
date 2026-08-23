@@ -18,6 +18,8 @@
 
   .btn-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:18px; }
   .btn-row .btn-primary{ flex:1; }
+  .login-row{ margin:18px; display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; color:var(--muted); font-size:12.5px; }
+  .login-row .btn-ghost{ min-width:120px; text-align:center; }
 </style>
 </head>
 <body>
@@ -187,6 +189,11 @@
         </div>
       </form>
     </div>
+  </div>
+
+  <div class="login-row">
+    <span>Already have an account?</span>
+    <a class="btn-ghost" href="{{ url_for('login_page') }}">Log in</a>
   </div>
 
 <script>
