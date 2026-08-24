@@ -127,21 +127,85 @@
 
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 <script>
-  function updateStatus(checkbox){
+  const defaultArtisan = {
+    id: '',
+    name: 'Artisan',
+    profession: 'Repair',
+    email: '',
+    qualification: 'Certified professional',
+    hourlyRate: 550,
+    calloutFee: 250,
+    available: true,
+    verified: true,
+    status: 'Online'
+  };
+  const artisan = Object.assign({}, defaultArtisan, {{ artisan|tojson|safe if artisan is defined else '{}' }});
+
+  function renderArtisanProfile(){
+    const workerName = document.getElementById('workerName');
     const statusText = document.getElementById('statusText');
-    if(checkbox.checked){
-      statusText.textContent = "Status: Online";
-    } else {
-      statusText.textContent = "Status: Offline";
+    const toggle = document.querySelector('.switch input');
+    const hourlyRateInput = document.getElementById('hourlyRate');
+    const calloutFeeInput = document.getElementById('calloutFee');
+
+    if (workerName) workerName.textContent = artisan.name || 'Artisan';
+    if (hourlyRateInput) hourlyRateInput.value = artisan.hourlyRate || artisan.rate || 550;
+    if (calloutFeeInput) calloutFeeInput.value = artisan.calloutFee || 250;
+    if (toggle) {
+      toggle.checked = !!artisan.available;
+      updateStatus(toggle, true);
+    } else if (statusText) {
+      statusText.textContent = 'Status: ' + (artisan.available ? 'Online' : 'Offline');
+    }
+  }
+
+  function apiUpdateArtisan(payload){
+    if (!artisan.id) return Promise.resolve({ ok: true });
+    return fetch(`/api/artisan/${artisan.id}/profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(async res => {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Update failed');
+      return data;
+    });
+  }
+
+  function updateStatus(checkbox, silent=false){
+    const statusText = document.getElementById('statusText');
+    const available = !!checkbox.checked;
+    artisan.available = available;
+    if (statusText) {
+      statusText.textContent = `Status: ${available ? 'Online' : 'Offline'}`;
+    }
+
+    if (!silent && artisan.id) {
+      apiUpdateArtisan({ available }).then(() => {
+        showToast(`Status set to ${available ? 'online' : 'offline'}`);
+      }).catch(() => showToast('Status update failed'));
     }
   }
 
   function saveRates(){
-    const rate = document.getElementById('hourlyRate').value;
-    const callout = document.getElementById('calloutFee').value;
-    showToast(`Rates updated — R${rate}/hr, R${callout} call-out`);
+    const rate = Number(document.getElementById('hourlyRate').value) || artisan.hourlyRate || 550;
+    const callout = Number(document.getElementById('calloutFee').value) || artisan.calloutFee || 250;
+    artisan.hourlyRate = rate;
+    artisan.calloutFee = callout;
+
+    if (!artisan.id) {
+      showToast('This profile is not linked to a saved artisan record yet.');
+      return;
+    }
+
+    apiUpdateArtisan({ hourlyRate: rate, calloutFee: callout })
+      .then(() => {
+        showToast(`Rates updated — R${rate}/hr, R${callout} call-out`);
+      })
+      .catch(() => showToast('Unable to save rates right now'));
   }
 
+  renderArtisanProfile();
   wireTabBar('dashboard');
 </script>
 </body>

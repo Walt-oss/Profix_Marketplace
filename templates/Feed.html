@@ -67,7 +67,29 @@
     {id:'repair',label:'Repairs'},{id:'ict',label:'ICT Support'},
   ];
 
-  let activeCategory='all', searchTerm='', openCard=null;
+  let activeCategory='all', searchTerm='', openCard=null, workers=[];
+
+  function normalizeWorker(item){
+    const profession = (item.profession || item.label || 'Repair').toLowerCase();
+    let category = 'repair';
+
+    if (profession.includes('electric')) category = 'electrician';
+    else if (profession.includes('plumb') || profession.includes('pipe')) category = 'plumber';
+    else if (profession.includes('ict') || profession.includes('tech') || profession.includes('computer')) category = 'ict';
+
+    return {
+      id: item.id || item.key || '',
+      name: item.name || 'Artisan',
+      label: item.profession || item.label || 'Repair',
+      area: item.area || 'Gqeberha',
+      category,
+      rate: Number(item.hourlyRate || item.rate || 550),
+      jobs: Number(item.jobs || 0),
+      rating: Number(item.rating || 5),
+      certs: item.certs || item.qualification || 'Certified professional',
+      verified: item.verified !== false,
+    };
+  }
 
   function renderChips(){
     const row=document.getElementById('chipRow'); row.innerHTML='';
@@ -81,7 +103,21 @@
   }
 
   function matches(w){
-    return (activeCategory==='all'||w.category===activeCategory) && w.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return (activeCategory==='all'||w.category===activeCategory) && (w.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+  }
+
+  async function loadWorkers(){
+    try {
+      const response = await fetch('/api/artisans');
+      const data = await response.json();
+      workers = Array.isArray(data) ? data.map(normalizeWorker) : [];
+    } catch (error) {
+      console.error('Failed to load artisans:', error);
+      workers = [];
+    }
+
+    renderChips();
+    renderGrid();
   }
 
   function renderGrid(){
@@ -125,6 +161,7 @@
     grid.querySelectorAll('.hex').forEach(hex=>{
       hex.onclick=()=>{
         const w = workers.find(x=>x.id==hex.dataset.id);
+        if (!w) return;
         showToast(w.verified ? `✓ ${w.name} — ID checked, insured, background cleared` : `${w.name} hasn't completed verification yet`);
       };
     });
@@ -141,6 +178,7 @@
       const prev=document.getElementById('details-'+openCard);
       if(prev) prev.classList.remove('open');
     }
+    if(!el) return;
     el.classList.toggle('open');
     openCard = el.classList.contains('open') ? id : null;
   }
@@ -160,7 +198,7 @@
   wireTabBar('feed');
   renderChips();
   showSkeleton();
-  setTimeout(renderGrid, 600);
+  loadWorkers();
 </script>
 </body>
 </html>
