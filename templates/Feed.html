@@ -148,7 +148,7 @@
         <div class="details" id="details-${w.id}">
           <div class="details-inner">
             <div><b>Certifications:</b> ${w.certs}</div>
-            <button class="book-btn" data-name="${w.name}">Book ${w.name.split(' ')[0]}</button>
+            <button class="book-btn" data-id="${w.id}" data-name="${w.name}">Book ${w.name.split(' ')[0]}</button>
           </div>
         </div>
       `;
@@ -157,7 +157,10 @@
 
     grid.querySelectorAll('.expand-btn').forEach(btn=>{
       btn.onclick=()=>{
-        window.location.href = "{{ url_for('chat_window') }}";
+        const worker = workers.find(x => String(x.id) === String(btn.dataset.id));
+        if (!worker) return;
+        const params = new URLSearchParams({ artisan_id: String(worker.id) });
+        window.location.href = "{{ url_for('chat_window') }}?" + params.toString();
       };
     });
     grid.querySelectorAll('.hex').forEach(hex=>{
@@ -169,7 +172,13 @@
     });
     grid.querySelectorAll('.book-btn').forEach(btn=>{
       btn.onclick=()=>{
-        window.location.href = "{{ url_for('chat_window') }}";
+        const worker = workers.find(x => String(x.id) === String(btn.dataset.id || btn.closest('.card')?.querySelector('.hex')?.dataset.id));
+        if (!worker) {
+          window.location.href = "{{ url_for('chat_window') }}";
+          return;
+        }
+        const params = new URLSearchParams({ artisan_id: String(worker.id) });
+        window.location.href = "{{ url_for('chat_window') }}?" + params.toString();
       };
     });
   }

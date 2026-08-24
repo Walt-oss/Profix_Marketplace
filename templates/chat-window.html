@@ -159,15 +159,9 @@
   <div class="toast" id="toast"></div>
 
 <script>
-  const workers = [
-    {id:1,name:"Jonny Mand",category:"electrician",label:"Electrician",area:"Central",rate:450,rating:5,
-      quoteDesc:"Kitchen circuit rewire + new distribution board install",quoteAmount:1850},
-    {id:2,name:"Logan Smith",category:"plumber",label:"Plumber",area:"Summerstrand",rate:380,rating:4,
-      quoteDesc:"Replace burst geyser pipe + pressure test",quoteAmount:920},
-    {id:3,name:"Sarah Moodley",category:"ict",label:"ICT Support",area:"Central",rate:550,rating:5,
-      quoteDesc:"Home network setup + mesh Wi-Fi install",quoteAmount:1350},
-  ];
   const catColor = { electrician:'#F2B705', plumber:'#3DA9FC', repair:'#E2703A', ict:'#9B8CFF' };
+  let workers = [];
+  const selectedArtisanId = new URLSearchParams(window.location.search).get('artisan_id');
 
   function initials(n){ return n.split(' ').map(w=>w[0]).join(''); }
   function formatSize(bytes){
@@ -176,9 +170,42 @@
     return (bytes/1024/1024).toFixed(1) + ' MB';
   }
 
+  async function loadWorkers(){
+    try {
+      const response = await fetch('/api/artisans');
+      const data = await response.json();
+      workers = Array.isArray(data) ? data.map(w => ({
+        id: w.id || w.key || '',
+        name: w.name || 'Artisan',
+        category: w.category || 'repair',
+        label: w.profession || w.label || 'Repair',
+        area: w.area || 'Gqeberha',
+        rate: Number(w.rate || w.hourlyRate || 550),
+        rating: Number(w.rating || 5),
+        quoteDesc: w.qualification || 'Service quote',
+        quoteAmount: Number(w.rate || w.hourlyRate || 550) * 2,
+      })) : [];
+    } catch (error) {
+      console.error('Failed to load artisan list:', error);
+      workers = [];
+    }
+
+    renderGrid();
+    if (selectedArtisanId) {
+      const selectedWorker = workers.find(w => String(w.id) === String(selectedArtisanId));
+      if (selectedWorker) {
+        openChat(selectedWorker);
+      }
+    }
+  }
+
   function renderGrid(){
     const grid = document.getElementById('grid');
     grid.innerHTML = '';
+    if (!workers.length) {
+      grid.innerHTML = '<div class="empty">No artisans available right now.</div>';
+      return;
+    }
     workers.forEach(w => {
       const card = document.createElement('div');
       card.className = 'card';
@@ -199,7 +226,7 @@
       grid.appendChild(card);
     });
     grid.querySelectorAll('.book-btn').forEach(btn=>{
-      btn.onclick = () => openChat(workers.find(x=>x.id==btn.dataset.id));
+      btn.onclick = () => openChat(workers.find(x=>String(x.id)==String(btn.dataset.id)));
     });
   }
 
@@ -478,7 +505,7 @@
     toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
   }
 
-  renderGrid();
+  loadWorkers();
 </script>
 </body>
 </html>
