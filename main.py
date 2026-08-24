@@ -1,6 +1,10 @@
+import json
+import hashlib
+import uuid
+
 import firebase_admin
 from firebase_admin import credentials, auth
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, Response
 import requests
 
 # --- Firebase Initialization ---
@@ -253,6 +257,103 @@ def session_token():
         "token": custom_token,
         "custom_token": custom_token,
     })
+
+
+PAYFAST_URL = "https://www.payfast.co.za/eng/process"
+PAYFAST_MERCHANT_ID = "10000105"
+PAYFAST_MERCHANT_KEY = "YOUR_MERCHANT_KEY"
+PAYFAST_PASSPHRASE = "YOUR_PAYFAST_PASSPHRASE"
+PAYFAST_RETURN_URL = "http://localhost:5000/payments/return"
+PAYFAST_CANCEL_URL = "http://localhost:5000/payments/cancel"
+PAYFAST_NOTIFY_URL = "http://localhost:5000/payments/notify"
+
+
+def generate_payfast_signature(payload):
+    """Generate a PayFast signature for a standard payment form payload.
+    Replace the placeholder merchant key/passphrase with your real credentials
+    before going live. The form data must be signed using PayFast's documented
+    algorithm.
+    """
+    if not PAYFAST_MERCHANT_KEY or PAYFAST_MERCHANT_KEY == "YOUR_MERCHANT_KEY":
+        return "" 
+
+    data = {k: str(v) for k, v in payload.items() if v is not None and v != ""}
+    sorted_keys = sorted(data)
+    joined = "&".join(f"{key}={data[key]}" for key in sorted_keys)
+    to_hash = f"{joined}{PAYFAST_PASSPHRASE}"
+    return hashlib.md5(to_hash.encode("utf-8")).hexdigest()
+
+
+@app.route('/payments/checkout', methods=['POST'])
+def create_split_payment_checkout():
+    """Build a PayFast split-payment form for a confirmed booking.
+    This is intended to be called from the chat payment confirm action.
+    """
+    data = request.get_json(silent=True) or {}
+    amount = float(data.get('amount', 0) or 0)
+    artisan_name = data.get('artisan_name') or 'Pro Fix Artisan'
+    item_description = data.get('item_description') or f"Booking with {artisan_name}"
+    email_address = data.get('email_address') or 'customer@example.com'
+
+    split_payment = {
+        "merchant_id": int(data.get('merchant_id', PAYFAST_MERCHANT_ID)),
+        "percentage": int(data.get('split_percentage', 10)),
+        "min": int(data.get('split_min', 100)),
+        "max": int(data.get('split_max', 100000)),
+    }
+
+    if amount <= 0:
+        return jsonify({"error": "amount must be greater than zero"}), 400
+
+    payment_id = data.get('payment_id') or f"booking-{uuid.uuid4().hex[:12]}"
+    form_data = {
+        "merchant_id": PAYFAST_MERCHANT_ID,
+        "merchant_key": PAYFAST_MERCHANT_KEY,
+        "return_url": data.get('return_url', PAYFAST_RETURN_URL),
+        "cancel_url": data.get('cancel_url', PAYFAST_CANCEL_URL),
+        "notify_url": data.get('notify_url', PAYFAST_NOTIFY_URL),
+        "m_payment_id": payment_id,
+        "amount": f"{amount:.2f}",
+        "item_name": data.get('item_name') or f"Booking with {artisan_name}",
+        "item_description": item_description,
+        "email_address": email_address,
+        "split_payment": json.dumps(split_payment),
+    }
+
+    signature = generate_payfast_signature(form_data)
+    if signature:
+        form_data['signature'] = signature
+
+    input_fields = "\n".join(
+        f'<input type="hidden" name="{key}" value="{value}">' for key, value in form_data.items()
+    )
+
+    html = f"""
+    <html><body>
+    <form id="payfast_form" method="post" action="{PAYFAST_URL}">
+        {input_fields}
+    </form>
+    <script>document.getElementById('payfast_form').submit();</script>
+    </body></html>
+    """
+    return Response(html, mimetype='text/html')
+
+
+@app.route('/payments/notify', methods=['POST'])
+def payfast_notify():
+    payload = request.form.to_dict()
+    print('PayFast notify payload:', payload)
+    return '', 200
+
+
+@app.route('/payments/return', methods=['GET'])
+def payfast_return():
+    return jsonify({"status": "payment returned"})
+
+
+@app.route('/payments/cancel', methods=['GET'])
+def payfast_cancel():
+    return jsonify({"status": "payment cancelled"})
 
 
 if __name__ == '__main__':

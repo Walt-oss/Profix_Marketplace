@@ -410,17 +410,53 @@
     document.getElementById('paySheet').classList.remove('show');
   }
 
-  function confirmPayment(){
+  async function confirmPayment(){
     const btn = document.getElementById('confirmPayBtn');
     btn.disabled = true;
     btn.textContent = 'Processing...';
-    setTimeout(() => {
+
+    const quote = messages[payingIdx];
+    try {
+      const response = await fetch('/payments/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: quote.amount,
+          artisan_name: currentWorker.name,
+          item_name: `Booking with ${currentWorker.name}`,
+          item_description: quote.desc,
+          email_address: 'customer@example.com',
+          split_percentage: 10,
+          split_min: 100,
+          split_max: 100000,
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Checkout request failed');
+      }
+
+      const html = await response.text();
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = html;
+      document.body.appendChild(wrapper);
+
+      const form = wrapper.querySelector('form');
+      if (!form) {
+        throw new Error('PayFast form was not returned');
+      }
+
+      form.submit();
       closePaySheet();
-      const quote = messages[payingIdx];
       quote.paid = true;
       messages.push({ type:'paid-confirm', text:`✓ Payment confirmed — R${quote.amount.toLocaleString()} sent to ${currentWorker.name}` });
       renderThread();
-    }, 900);
+    } catch (error) {
+      console.error('Payment trigger failed:', error);
+      showToast('Payment checkout failed. Please try again.');
+      btn.disabled = false;
+      btn.textContent = `Pay R${quote.amount.toLocaleString()}`;
+    }
   }
 
   /* ---------------- Wiring ---------------- */
