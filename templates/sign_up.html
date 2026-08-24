@@ -156,8 +156,12 @@
         <div style="text-align:center; margin-top:12px;">
           <input type="reset" class="btn-text" value="Clear form">
         </div>
-      </form>
+    <div class="login-row" style="margin: 18px 0 0;">
+      <span>Already have an account?</span>
+      <a class="btn-ghost" href="{{ url_for('login_page') }}">Log in</a>
     </div>
+  </form>
+</div>
 
     <div id="workerForm" class="form-card card">
       <form action="/send_freelancer_data" method="post">
@@ -187,19 +191,12 @@
         <div style="text-align:center; margin-top:12px;">
           <input type="reset" class="btn-text" value="Clear form">
         </div>
+        <div class="login-row" style="margin: 18px 0 0;">
+          <span>Already have an account?</span>
+          <a class="btn-ghost" href="{{ url_for('login_page') }}">Log in</a>
+        </div>
       </form>
     </div>
-  </div>
-
-  <div class="login-row">
-    <span>Already have an account?</span>
-    <a class="btn-ghost" href="{{ url_for('login_page') }}">Log in</a>
-  </div>
-
-<script>
-  function showForm(type, btn){
-    document.getElementById('clientForm').classList.remove('show');
-    document.getElementById('workerForm').classList.remove('show');
     document.querySelectorAll('.segmented button').forEach(b => b.classList.remove('active'));
 
     document.getElementById(type === 'client' ? 'clientForm' : 'workerForm').classList.add('show');
