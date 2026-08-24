@@ -156,7 +156,9 @@
     });
 
     grid.querySelectorAll('.expand-btn').forEach(btn=>{
-      btn.onclick=()=>toggleDetails(btn.dataset.id);
+      btn.onclick=()=>{
+        window.location.href = "{{ url_for('chat_window') }}";
+      };
     });
     grid.querySelectorAll('.hex').forEach(hex=>{
       hex.onclick=()=>{
