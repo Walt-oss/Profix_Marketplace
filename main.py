@@ -1,10 +1,6 @@
-import json
-import hashlib
-import uuid
-
 import firebase_admin
 from firebase_admin import credentials, auth
-from flask import Flask, render_template, request, jsonify, redirect, url_for, Response
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 import requests
 
 # --- Firebase Initialization ---
@@ -12,6 +8,7 @@ cred = credentials.Certificate("firebase.json")
 firebase_admin.initialize_app(cred)
 
 app = Flask(__name__)
+app.secret_key = "profix-live-profile-session"
 DB_URL = "https://customer-data-e5395.firebaseio.com"
 DB_URL_A = "https://artisan-data.firebaseio.com/"
 
@@ -68,10 +65,13 @@ def normalize_artisan_record(key, artisan):
 
 
 def fetch_artisans():
-    response = requests.get(f"{DB_URL_A.rstrip('/')}/artisans.json", timeout=10)
-    response.raise_for_status()
-    payload = response.json() or {}
+    try:
+        response = requests.get(f"{DB_URL_A.rstrip('/')}/artisans.json", timeout=10)
+        response.raise_for_status()
+    except requests.RequestException:
+        return []
 
+    payload = response.json() or {}
     if isinstance(payload, list):
         payload = {str(index): item for index, item in enumerate(payload)}
 
@@ -83,25 +83,85 @@ def fetch_artisans():
     return artisans
 
 
-# --- Sign Up Form Display ---
+def clear_customer_session():
+    for key in ["customer_email", "customer_id", "customer_name"]:
+        session.pop(key, None)
+
+
+def clear_artisan_session():
+    for key in ["artisan_id", "artisan_email", "artisan_name"]:
+        session.pop(key, None)
+
+
+def set_customer_session(email=None, customer_id=None, name=None):
+    clear_artisan_session()
+    session["role"] = "customer"
+    if email:
+        session["customer_email"] = str(email).strip().lower()
+    if customer_id:
+        session["customer_id"] = customer_id
+    if name:
+        session["customer_name"] = str(name).strip()
+
+
+def set_artisan_session(artisan_key, email=None, name=None):
+    clear_customer_session()
+    session["role"] = "artisan"
+    if artisan_key is not None:
+        session["artisan_id"] = artisan_key
+    if email:
+        session["artisan_email"] = str(email).strip().lower()
+    if name:
+        session["artisan_name"] = str(name).strip()
+
+
 @app.route("/", methods=["GET"])
-def sign_up():
+@app.route("/customer-sign-up", methods=["GET"])
+def customer_sign_up():
     return render_template("sign_up.html")
 
 
 @app.route("/login", methods=["GET", "POST"])
-def login_page():
+@app.route("/Login", methods=["GET", "POST"])
+def login():
     if request.method == "POST":
         email = request.form.get("Email")
-        password = request.form.get("Password")
-        print(f"Login attempt for {email} with password length {len(password) if password else 0}")
-        return render_template("Feed.html")
+        if not email:
+            return redirect(url_for("login"))
+
+        email_norm = email.strip().lower()
+
+        try:
+            response = requests.get(f"{DB_URL_A.rstrip('/')}/artisans.json", timeout=10)
+            response.raise_for_status()
+            artisans = response.json() or {}
+            if isinstance(artisans, list):
+                artisans = {str(index): item for index, item in enumerate(artisans)}
+
+            for artisan_key, artisan_data in artisans.items():
+                if not isinstance(artisan_data, dict):
+                    continue
+                if str(artisan_data.get("email") or "").strip().lower() == email_norm:
+                    set_artisan_session(
+                        artisan_key,
+                        email=email_norm,
+                        name=str(artisan_data.get("name") or "Artisan").strip(),
+                    )
+                    return redirect(url_for("artisan_profile", artisan_id=artisan_key))
+        except requests.RequestException:
+            pass
+
+        set_customer_session(email=email_norm)
+        return redirect(url_for("feed_page"))
     return render_template("login.html")
 
 
-# --- Sending Data to Realtime Database ---
+app.add_url_rule("/login", endpoint="login_page", view_func=login, methods=["GET", "POST"])
+
+
 @app.route("/sign_up", methods=["POST"])
-def send_customer_data():
+@app.route("/Customer_sign_up", methods=["POST"])
+def customer_sign_up_submit():
     name = request.form.get("Name")
     surname = request.form.get("Surname")
     email = request.form.get("Email")
@@ -111,23 +171,154 @@ def send_customer_data():
         "name": name,
         "surname": surname,
         "email": email,
-        "password": password
+        "password": password,
     }
 
-    response = requests.post(
-        f"{DB_URL}/users.json",
-        json=customer_data,
-        timeout=10
-    )
+    response = requests.post(f"{DB_URL}/users.json", json=customer_data, timeout=10)
     response.raise_for_status()
 
-    result = response.json()
-    print("Firebase response:", result)
+    result = response.json() or {}
+    customer_id = result.get("name") if isinstance(result, dict) and result.get("name") else None
+
+    set_customer_session(
+        email=email,
+        customer_id=customer_id,
+        name=" ".join(filter(None, [name, surname])).strip() if (name or surname) else None,
+    )
+
+    return redirect(url_for("feed_page"))
+
+
+@app.route("/feed")
+@app.route("/Feed.html")
+def feed_page():
+    if session.get("role") == "artisan":
+        artisan_id = session.get("artisan_id")
+        if artisan_id:
+            return redirect(url_for("artisan_profile", artisan_id=artisan_id))
+        return redirect(url_for("artisan_sign_up"))
     return render_template("Feed.html")
 
 
+@app.route("/Customer_Profile .html")
+def customer_profile():
+    if session.get("role") == "artisan":
+        artisan_id = session.get("artisan_id")
+        if artisan_id:
+            return redirect(url_for("artisan_profile", artisan_id=artisan_id))
+        return redirect(url_for("artisan_sign_up"))
+    customer_email = request.args.get("email") or session.get("customer_email")
+    customer_id = request.args.get("customer_id") or session.get("customer_id")
+
+    if customer_email or customer_id:
+        try:
+            response = requests.get(f"{DB_URL}/users.json", timeout=10)
+            response.raise_for_status()
+            payload = response.json() or {}
+
+            for key, value in payload.items():
+                if not isinstance(value, dict):
+                    continue
+
+                record_email = str(value.get("email") or "").strip().lower()
+                if customer_id and str(key) == str(customer_id):
+                    customer = value
+                    customer["id"] = key
+                    break
+                if customer_email and record_email == customer_email.strip().lower():
+                    customer = value
+                    customer["id"] = key
+                    break
+            else:
+                customer = None
+        except requests.RequestException:
+            customer = None
+    else:
+        customer = None
+
+    if customer:
+        full_name = " ".join(filter(None, [customer.get("name"), customer.get("surname")])).strip() or "Customer"
+        user = {
+            "name": full_name,
+            "email": customer.get("email") or session.get("customer_email") or "customer@example.com",
+            "bookings": parse_int(customer.get("bookings", customer.get("activeBookings", 0)), 0),
+            "active": parse_int(customer.get("active", 0), 0),
+            "spent": parse_int(customer.get("spent", 0), 0),
+        }
+        current_order = customer.get("current_order") or {
+            "artisan_name": "Jonny Mand",
+            "artisan_role": "Electrician",
+            "status": "In progress",
+            "desc": "Rewiring the kitchen circuit and installing a new distribution board. Arrived on site at 10:30, estimated completion by 14:00.",
+        }
+    else:
+        user = {
+            "name": session.get("customer_name") or "Preneil Naidoo",
+            "email": session.get("customer_email") or "preneil.naidoo@email.com",
+            "bookings": 12,
+            "active": 3,
+            "spent": 2800,
+        }
+        current_order = {
+            "artisan_name": "Jonny Mand",
+            "artisan_role": "Electrician",
+            "status": "In progress",
+            "desc": "Rewiring the kitchen circuit and installing a new distribution board. Arrived on site at 10:30, estimated completion by 14:00.",
+        }
+
+    return render_template("Customer_Profile .html", user=user, current_order=current_order)
+
+
+app.add_url_rule("/profile", endpoint="profile", view_func=customer_profile, methods=["GET"])
+app.add_url_rule("/sign_up", endpoint="sign_up", view_func=customer_sign_up, methods=["GET"])
+
+
+@app.route("/chat-window")
+@app.route("/chat")
+def chat_window():
+    return render_template("chat-window.html")
+
+
+@app.route("/artisan-profile")
+@app.route("/Artisan_profile")
+@app.route("/artisan/<artisan_id>")
+def artisan_profile(artisan_id=None):
+    if artisan_id is None:
+        # prefer an artisan id stored in session (signed-in artisan),
+        # then check the query param, otherwise fall back to demo
+        artisan_id = request.args.get("artisan_id") or session.get("artisan_id") or "demo-artisan"
+
+    try:
+        artisan_response = requests.get(f"{DB_URL_A.rstrip('/')}/artisans/{artisan_id}.json", timeout=10)
+        artisan_response.raise_for_status()
+        record = artisan_response.json() or {}
+    except requests.RequestException:
+        record = {}
+
+    artisan = {
+        "id": artisan_id,
+        "name": record.get("name") or "Artisan",
+        "profession": record.get("profession") or "Repair",
+        "email": record.get("email") or "",
+        "qualification": record.get("qualification") or "Certified professional",
+        "hourlyRate": parse_int(record.get("hourlyRate", record.get("rate", 550)), 550),
+        "calloutFee": parse_int(record.get("calloutFee", record.get("callout_fee", 250)), 250),
+        "available": bool(record.get("available", True)),
+        "verified": bool(record.get("verified", True)),
+        "status": "Online" if record.get("available", True) else "Offline",
+    }
+    return render_template("Artisan-login.html", artisan=artisan)
+
+
+@app.route("/artisan-sign-up", methods=["GET"])
+@app.route("/Artisan_sign_up", methods=["GET"])
+def artisan_sign_up():
+    return render_template("sign_up.html")
+
+
 @app.route("/send_freelancer_data", methods=["POST"])
-def send_freelancer_data():
+@app.route("/Artisan_sign_up", methods=["POST"])
+def artisan_sign_up_submit():
     name = request.form.get("Name")
     profession = request.form.get("Profession")
     email = request.form.get("Email")
@@ -148,143 +339,29 @@ def send_freelancer_data():
         "jobs": 0,
         "area": "Gqeberha",
     }
+
     try:
-        resp = requests.post(
-            f"{DB_URL_A.rstrip('/')}/artisans.json",
-            json=freelancer_data,
-            timeout=10,
-        )
+        resp = requests.post(f"{DB_URL_A.rstrip('/')}/artisans.json", json=freelancer_data, timeout=10)
         resp.raise_for_status()
-        result = resp.json()
+        result = resp.json() or {}
         artisan_id = result.get("name") if isinstance(result, dict) else None
-        print("Firebase response (artisan):", result)
         if artisan_id:
-            return redirect(url_for("artisan_dashboard", artisan_id=artisan_id))
-        return render_template("Artisan-login.html")
-    except requests.RequestException as e:
-        print("Error writing artisan to RTDB:", e)
-        return (f"Failed to save artisan: {e}", 500)
-
-
-@app.route("/api/artisans", methods=["GET"])
-def api_artisans():
-    try:
-        return jsonify(fetch_artisans())
-    except requests.RequestException as exc:
-        print("Error reading artisans:", exc)
-        return jsonify([])
-
-
-@app.route('/api/artisan/<artisan_id>', methods=['GET'])
-def api_get_artisan(artisan_id):
-    """Return a single normalized artisan record as JSON."""
-    try:
-        resp = requests.get(f"{DB_URL_A.rstrip('/')}/artisans/{artisan_id}.json", timeout=10)
-        resp.raise_for_status()
-        record = resp.json() or {}
-    except requests.RequestException as exc:
-        print("Error loading artisan for API:", exc)
-        return jsonify({}), 404
-
-    normalized = normalize_artisan_record(artisan_id, record)
-    return jsonify(normalized or {})
-
-
-@app.route("/artisan/<artisan_id>", methods=["GET"])
-def artisan_dashboard(artisan_id):
-    try:
-        artisan_response = requests.get(f"{DB_URL_A.rstrip('/')}/artisans/{artisan_id}.json", timeout=10)
-        artisan_response.raise_for_status()
-        record = artisan_response.json() or {}
-    except requests.RequestException as exc:
-        print("Error loading artisan profile:", exc)
-        record = {}
-
-    artisan = normalize_artisan_record(artisan_id, record) or {
-        "id": artisan_id,
-        "name": "Artisan",
-        "profession": "Repair",
-        "email": "",
-        "qualification": "Certified professional",
-        "hourlyRate": 550,
-        "calloutFee": 250,
-        "available": True,
-        "verified": True,
-        "status": "Online",
-    }
-    return render_template("Artisan-login.html", artisan=artisan)
-
-
-@app.route("/api/artisan/<artisan_id>/profile", methods=["POST"])
-def update_artisan_profile(artisan_id):
-    payload = request.get_json(silent=True) or {}
-
-    try:
-        existing_response = requests.get(f"{DB_URL_A.rstrip('/')}/artisans/{artisan_id}.json", timeout=10)
-        existing_response.raise_for_status()
-        current = existing_response.json() or {}
+            set_artisan_session(artisan_id, email=email, name=name)
+            return redirect(url_for("artisan_profile", artisan_id=artisan_id))
     except requests.RequestException:
-        current = {}
+        pass
 
-    if not isinstance(current, dict):
-        current = {}
-
-    merged = dict(current)
-    for key, value in payload.items():
-        merged[key] = value
-
-    update_response = requests.put(f"{DB_URL_A.rstrip('/')}/artisans/{artisan_id}.json", json=merged, timeout=10)
-    update_response.raise_for_status()
-
-    return jsonify(normalize_artisan_record(artisan_id, merged))
+    return render_template("Artisan-login.html")
 
 
-def get_customer_profile_context():
-    """Return the default profile payload expected by the customer profile template."""
-    return {
-        "user": {
-            "name": "Preneil Naidoo",
-            "email": "preneil.naidoo@email.com",
-            "bookings": 12,
-            "active": 3,
-            "spent": 2800,
-        },
-        "current_order": {
-            "artisan_name": "Jonny Mand",
-            "artisan_role": "Electrician",
-            "status": "In progress",
-            "desc": "Rewiring the kitchen circuit and installing a new distribution board. Arrived on site at 10:30, estimated completion by 14:00.",
-        },
-    }
-
-
-#Customer-Profile Page
-@app.route("/profile")
-@app.route("/Customer_Profile")
-def profile():
-    # Template file in workspace is named "Customer_Profile (1).html" — render that.
-    return render_template("Customer_Profile (1).html", **get_customer_profile_context())
-
-
-# Chat window page opened from the feed when a user books a pro
-@app.route("/chat-window")
-@app.route("/chat")
-def chat_window():
-    return render_template("chat-window.html")
-
-
-# User Authentication - create a custom token for the signed-up UID and return it
-# as JSON so the frontend can call signInWithCustomToken(auth, customToken)
 @app.route('/sessionLogin', methods=['POST'])
 def session_token():
     data = request.get_json(silent=True) or {}
     uid = data.get("uid")
-
     if not uid:
         return jsonify({"error": "uid is required"}), 400
 
     custom_token = auth.create_custom_token(uid)
-
     if isinstance(custom_token, (bytes, bytearray)):
         custom_token = custom_token.decode("utf-8")
 
@@ -295,102 +372,5 @@ def session_token():
     })
 
 
-PAYFAST_URL = "https://www.payfast.co.za/eng/process"
-PAYFAST_MERCHANT_ID = "10000105"
-PAYFAST_MERCHANT_KEY = "YOUR_MERCHANT_KEY"
-PAYFAST_PASSPHRASE = "YOUR_PAYFAST_PASSPHRASE"
-PAYFAST_RETURN_URL = "http://localhost:5000/payments/return"
-PAYFAST_CANCEL_URL = "http://localhost:5000/payments/cancel"
-PAYFAST_NOTIFY_URL = "http://localhost:5000/payments/notify"
-
-
-def generate_payfast_signature(payload):
-    """Generate a PayFast signature for a standard payment form payload.
-    Replace the placeholder merchant key/passphrase with your real credentials
-    before going live. The form data must be signed using PayFast's documented
-    algorithm.
-    """
-    if not PAYFAST_MERCHANT_KEY or PAYFAST_MERCHANT_KEY == "YOUR_MERCHANT_KEY":
-        return "" 
-
-    data = {k: str(v) for k, v in payload.items() if v is not None and v != ""}
-    sorted_keys = sorted(data)
-    joined = "&".join(f"{key}={data[key]}" for key in sorted_keys)
-    to_hash = f"{joined}{PAYFAST_PASSPHRASE}"
-    return hashlib.md5(to_hash.encode("utf-8")).hexdigest()
-
-
-@app.route('/payments/checkout', methods=['POST'])
-def create_split_payment_checkout():
-    """Build a PayFast split-payment form for a confirmed booking.
-    This is intended to be called from the chat payment confirm action.
-    """
-    data = request.get_json(silent=True) or {}
-    amount = float(data.get('amount', 0) or 0)
-    artisan_name = data.get('artisan_name') or 'Pro Fix Artisan'
-    item_description = data.get('item_description') or f"Booking with {artisan_name}"
-    email_address = data.get('email_address') or 'customer@example.com'
-
-    split_payment = {
-        "merchant_id": int(data.get('merchant_id', PAYFAST_MERCHANT_ID)),
-        "percentage": int(data.get('split_percentage', 10)),
-        "min": int(data.get('split_min', 100)),
-        "max": int(data.get('split_max', 100000)),
-    }
-
-    if amount <= 0:
-        return jsonify({"error": "amount must be greater than zero"}), 400
-
-    payment_id = data.get('payment_id') or f"booking-{uuid.uuid4().hex[:12]}"
-    form_data = {
-        "merchant_id": PAYFAST_MERCHANT_ID,
-        "merchant_key": PAYFAST_MERCHANT_KEY,
-        "return_url": data.get('return_url', PAYFAST_RETURN_URL),
-        "cancel_url": data.get('cancel_url', PAYFAST_CANCEL_URL),
-        "notify_url": data.get('notify_url', PAYFAST_NOTIFY_URL),
-        "m_payment_id": payment_id,
-        "amount": f"{amount:.2f}",
-        "item_name": data.get('item_name') or f"Booking with {artisan_name}",
-        "item_description": item_description,
-        "email_address": email_address,
-        "split_payment": json.dumps(split_payment),
-    }
-
-    signature = generate_payfast_signature(form_data)
-    if signature:
-        form_data['signature'] = signature
-
-    input_fields = "\n".join(
-        f'<input type="hidden" name="{key}" value="{value}">' for key, value in form_data.items()
-    )
-
-    html = f"""
-    <html><body>
-    <form id="payfast_form" method="post" action="{PAYFAST_URL}">
-        {input_fields}
-    </form>
-    <script>document.getElementById('payfast_form').submit();</script>
-    </body></html>
-    """
-    return Response(html, mimetype='text/html')
-
-
-@app.route('/payments/notify', methods=['POST'])
-def payfast_notify():
-    payload = request.form.to_dict()
-    print('PayFast notify payload:', payload)
-    return '', 200
-
-
-@app.route('/payments/return', methods=['GET'])
-def payfast_return():
-    return jsonify({"status": "payment returned"})
-
-
-@app.route('/payments/cancel', methods=['GET'])
-def payfast_cancel():
-    return jsonify({"status": "payment cancelled"})
-
-
 if __name__ == '__main__':
-    app.run() 
+    app.run()

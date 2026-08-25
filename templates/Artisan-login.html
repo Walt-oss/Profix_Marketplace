@@ -119,10 +119,8 @@
   <div class="toast" id="toast"></div>
 
   <nav class="tabbar">
-    <button class="tab" data-tab="dashboard">🏠<span>Dashboard</span><span class="tab-dot"></span></button>
-    <button class="tab" data-tab="schedule" data-placeholder>📅<span>Schedule</span><span class="tab-dot"></span></button>
-    <button class="tab" data-tab="earnings" data-placeholder>💰<span>Earnings</span><span class="tab-dot"></span></button>
-    <button class="tab" data-tab="profile" data-placeholder>👤<span>Profile</span><span class="tab-dot"></span></button>
+    <button class="tab" data-tab="dashboard">👤<span>Dashboard</span><span class="tab-dot"></span></button>
+    <a class="tab" data-tab="feed" href="{{ url_for('feed_page') }}">🏠<span>Feed</span><span class="tab-dot"></span></a>
   </nav>
 
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
@@ -207,6 +205,19 @@
 
   renderArtisanProfile();
   wireTabBar('dashboard');
+
+  // If an artisan object is present (signed-in or just-registered),
+  // make sure the dashboard tab is active and show a small welcome toast.
+  try {
+    if (typeof artisan !== 'undefined' && artisan && (artisan.id || artisan.name)) {
+      const dash = document.querySelector('.tab[data-tab="dashboard"]');
+      if (dash) dash.classList.add('active');
+      const name = artisan.name || sessionStorage.getItem('artisan_name') || 'Artisan';
+      setTimeout(() => showToast(`Welcome, ${name}`), 300);
+    }
+  } catch (e) {
+    // noop
+  }
 </script>
 </body>
 </html>

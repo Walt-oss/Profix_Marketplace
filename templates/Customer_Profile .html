@@ -53,11 +53,11 @@
       <div class="cover"></div>
       <div class="avatar-wrap"><div class="avatar-lg" id="userInitials">{{ (user.name | default('Preneil Naidoo'))[:2] }}</div></div>
       <div class="user-name" id="userName">{{ user.name | default('Preneil Naidoo') }}</div>
-      <div class="user-email">{{ user.email | default('preneil.naidoo@email.com') }}</div>
+      <div class="user-email" id="userEmail">{{ user.email | default('preneil.naidoo@email.com') }}</div>
       <div class="stats">
-        <div class="stat-item"><b>{{ user.bookings | default(0) }}</b><span>Bookings</span></div>
-        <div class="stat-item"><b>{{ user.active | default(0) }}</b><span>Active</span></div>
-        <div class="stat-item"><b>R{{ user.spent | default(0) }}</b><span>Spent</span></div>
+        <div class="stat-item"><b id="userBookings">{{ user.bookings | default(0) }}</b><span>Bookings</span></div>
+        <div class="stat-item"><b id="userActive">{{ user.active | default(0) }}</b><span>Active</span></div>
+        <div class="stat-item"><b id="userSpent">R{{ user.spent | default(0) }}</b><span>Spent</span></div>
       </div>
     </div>
 
@@ -67,11 +67,11 @@
         <div class="order-artisan">
           <div class="avatar" style="background:#F2B705;" id="artisanInitials">{{ (current_order.artisan_name | default('Jonny Mand'))[:2] }}</div>
           <div class="order-name" id="artisanName">{{ current_order.artisan_name | default('Jonny Mand') }}</div>
-          <div class="order-role">{{ current_order.artisan_role | default('Electrician') }}</div>
+          <div class="order-role" id="artisanRole">{{ current_order.artisan_role | default('Electrician') }}</div>
         </div>
         <div class="order-detail">
-          <span class="status-pill on">{{ current_order.status | default('In progress') }}</span>
-          <p class="order-desc">{{ current_order.desc | default('Rewiring the kitchen circuit and installing a new distribution board. Arrived on site at 10:30, estimated completion by 14:00.') }}</p>
+          <span class="status-pill on" id="orderStatus">{{ current_order.status | default('In progress') }}</span>
+          <p class="order-desc" id="orderDesc">{{ current_order.desc | default('Rewiring the kitchen circuit and installing a new distribution board. Arrived on site at 10:30, estimated completion by 14:00.') }}</p>
         </div>
       </div>
     </div>
@@ -84,9 +84,7 @@
   <div class="toast" id="toast"></div>
 
   <nav class="tabbar">
-    <button class="tab" data-tab="feed" data-placeholder>🏠<span>Feed</span><span class="tab-dot"></span></button>
-    <button class="tab" data-tab="track" data-placeholder>📍<span>Track</span><span class="tab-dot"></span></button>
-    <button class="tab" data-tab="bookings" data-placeholder>🗂️<span>Bookings</span><span class="tab-dot"></span></button>
+    <a class="tab" data-tab="feed" href="{{ url_for('feed_page') }}">🏠<span>Feed</span><span class="tab-dot"></span></a>
     <button class="tab" data-tab="profile">👤<span>Profile</span><span class="tab-dot"></span></button>
   </nav>
 
@@ -98,12 +96,57 @@
     }
   }
 
-  window.onload = function(){
-    const name = document.getElementById('userName').innerText;
-    document.getElementById('userInitials').innerText = initials(name);
+  async function loadLiveProfile(){
+    try {
+      const response = await fetch('/api/customer/profile');
+      if (!response.ok) return;
+      const data = await response.json();
+      if (!data || !data.user) return;
 
-    const artisanName = document.getElementById('artisanName').innerText;
-    document.getElementById('artisanInitials').innerText = initials(artisanName);
+      const user = data.user;
+      const currentOrder = data.current_order || {};
+
+      const userNameEl = document.getElementById('userName');
+      const userEmailEl = document.getElementById('userEmail');
+      const userBookingsEl = document.getElementById('userBookings');
+      const userActiveEl = document.getElementById('userActive');
+      const userSpentEl = document.getElementById('userSpent');
+
+      if (userNameEl) userNameEl.innerText = user.name || 'Customer';
+      if (userEmailEl) userEmailEl.innerText = user.email || 'customer@example.com';
+      if (userBookingsEl) userBookingsEl.innerText = user.bookings || 0;
+      if (userActiveEl) userActiveEl.innerText = user.active || 0;
+      if (userSpentEl) userSpentEl.innerText = `R${user.spent || 0}`;
+
+      const userInitialsEl = document.getElementById('userInitials');
+      if (userInitialsEl) userInitialsEl.innerText = initials(user.name || 'Customer');
+
+      const artisanNameEl = document.getElementById('artisanName');
+      const artisanRoleEl = document.getElementById('artisanRole');
+      const orderStatusEl = document.getElementById('orderStatus');
+      const orderDescEl = document.getElementById('orderDesc');
+      const artisanInitialsEl = document.getElementById('artisanInitials');
+
+      if (artisanNameEl) artisanNameEl.innerText = currentOrder.artisan_name || 'Jonny Mand';
+      if (artisanRoleEl) artisanRoleEl.innerText = currentOrder.artisan_role || 'Electrician';
+      if (orderStatusEl) orderStatusEl.innerText = currentOrder.status || 'In progress';
+      if (orderDescEl) orderDescEl.innerText = currentOrder.desc || 'No active order details yet.';
+      if (artisanInitialsEl) artisanInitialsEl.innerText = initials(currentOrder.artisan_name || 'Jonny Mand');
+    } catch (error) {
+      console.error('Failed to load live profile:', error);
+    }
+  }
+
+  window.onload = function(){
+    const name = document.getElementById('userName')?.innerText || 'Customer';
+    const userInitialsEl = document.getElementById('userInitials');
+    if (userInitialsEl) userInitialsEl.innerText = initials(name);
+
+    const artisanName = document.getElementById('artisanName')?.innerText || 'Jonny Mand';
+    const artisanInitialsEl = document.getElementById('artisanInitials');
+    if (artisanInitialsEl) artisanInitialsEl.innerText = initials(artisanName);
+
+    loadLiveProfile();
   };
 
   wireTabBar('profile');

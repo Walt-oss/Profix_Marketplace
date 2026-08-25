@@ -25,15 +25,10 @@
 <body>
 
   <script type="module">
-  // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
   import { getAuth, createUserWithEmailAndPassword, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
 
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
   const firebaseConfig = {
     apiKey: "AIzaSyDBagZ4G6ZGEQ2O0rXBRsOW8tBotj_nPzA",
     authDomain: "skilled-hat.firebaseapp.com",
@@ -45,12 +40,10 @@
     measurementId: "G-CQW2XPT0LQ"
   };
 
-  // Initialize Firebase
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
   const auth = getAuth(app);
 
-  // Helper: POST JSON and return parsed JSON (throws on non-2xx)
   async function postJson(url, data){
     const res = await fetch(url, {
       method: 'POST',
@@ -61,7 +54,6 @@
     return res.json();
   }
 
-  // Wire client sign-up form to Firebase Auth and server custom-token flow
   document.addEventListener('DOMContentLoaded', () => {
     const clientForm = document.querySelector('form[action="/sign_up"]');
     const workerForm = document.querySelector('form[action="/send_freelancer_data"]');
@@ -73,20 +65,12 @@
         const email = form.querySelector('input[name="Email"]').value;
         const password = form.querySelector('input[name="Password"]').value;
         try {
-          // Create the Firebase user (client-side)
           const userCred = await createUserWithEmailAndPassword(auth, email, password);
           const uid = userCred.user.uid;
-
-          // Ask backend to mint a custom token for this uid
-          // Your backend should return JSON: { customToken: "..." }
           const resp = await postJson('/sessionLogin', { uid });
           const customToken = resp.customToken || resp.token || resp.custom_token;
           if (!customToken) throw new Error('No customToken in response');
-
-          // Sign in with the custom token
           await signInWithCustomToken(auth, customToken);
-
-          // Now submit the original form to let your server save user data to RTDB
           form.submit();
         } catch (err){
           console.error('Sign-up error:', err);
@@ -116,9 +100,20 @@
       });
     }
   });
+  </script>
 
-  
-</script>
+  <script>
+    function showForm(type, btn) {
+      const cards = document.querySelectorAll('.form-card');
+      cards.forEach(card => card.classList.remove('show'));
+
+      const target = document.getElementById(type === 'client' ? 'clientForm' : 'workerForm');
+      if (target) target.classList.add('show');
+
+      document.querySelectorAll('.segmented button').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+    }
+  </script>
 
   <div class="phone">
     <header class="topbar">
@@ -197,11 +192,5 @@
         </div>
       </form>
     </div>
-    document.querySelectorAll('.segmented button').forEach(b => b.classList.remove('active'));
-
-    document.getElementById(type === 'client' ? 'clientForm' : 'workerForm').classList.add('show');
-    btn.classList.add('active');
-  }
-</script>
 </body>
 </html>
