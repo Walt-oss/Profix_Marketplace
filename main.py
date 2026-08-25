@@ -175,6 +175,21 @@ def api_artisans():
         return jsonify([])
 
 
+@app.route('/api/artisan/<artisan_id>', methods=['GET'])
+def api_get_artisan(artisan_id):
+    """Return a single normalized artisan record as JSON."""
+    try:
+        resp = requests.get(f"{DB_URL_A.rstrip('/')}/artisans/{artisan_id}.json", timeout=10)
+        resp.raise_for_status()
+        record = resp.json() or {}
+    except requests.RequestException as exc:
+        print("Error loading artisan for API:", exc)
+        return jsonify({}), 404
+
+    normalized = normalize_artisan_record(artisan_id, record)
+    return jsonify(normalized or {})
+
+
 @app.route("/artisan/<artisan_id>", methods=["GET"])
 def artisan_dashboard(artisan_id):
     try:
@@ -227,7 +242,8 @@ def update_artisan_profile(artisan_id):
 #Customer-Profile Page
 @app.route("/Customer_Profile")
 def profile():
-    return render_template("Customer_Profile.html")
+    # Template file in workspace is named "Customer_Profile (1).html" — render that.
+    return render_template("Customer_Profile (1).html")
 
 
 # Chat window page opened from the feed when a user books a pro

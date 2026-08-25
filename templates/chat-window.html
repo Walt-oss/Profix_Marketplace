@@ -163,6 +163,20 @@
   let workers = [];
   const selectedArtisanId = new URLSearchParams(window.location.search).get('artisan_id');
 
+  async function fetchAndOpenSelectedArtisan(){
+    if(!selectedArtisanId) return;
+    try{
+      const res = await fetch(`/api/artisan/${selectedArtisanId}`);
+      if(!res.ok) return;
+      const w = await res.json();
+      if(w && w.id){
+        openChat(w);
+      }
+    }catch(e){
+      console.error('Failed to fetch selected artisan:', e);
+    }
+  }
+
   function initials(n){ return n.split(' ').map(w=>w[0]).join(''); }
   function formatSize(bytes){
     if(bytes < 1024) return bytes + ' B';
@@ -505,6 +519,9 @@
     toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
   }
 
+  // If an artisan_id was passed, fetch that artisan and open chat immediately,
+  // then continue loading the full list for browsing.
+  fetchAndOpenSelectedArtisan();
   loadWorkers();
 </script>
 </body>
