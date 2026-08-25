@@ -239,11 +239,31 @@ def update_artisan_profile(artisan_id):
     return jsonify(normalize_artisan_record(artisan_id, merged))
 
 
+def get_customer_profile_context():
+    """Return the default profile payload expected by the customer profile template."""
+    return {
+        "user": {
+            "name": "Preneil Naidoo",
+            "email": "preneil.naidoo@email.com",
+            "bookings": 12,
+            "active": 3,
+            "spent": 2800,
+        },
+        "current_order": {
+            "artisan_name": "Jonny Mand",
+            "artisan_role": "Electrician",
+            "status": "In progress",
+            "desc": "Rewiring the kitchen circuit and installing a new distribution board. Arrived on site at 10:30, estimated completion by 14:00.",
+        },
+    }
+
+
 #Customer-Profile Page
+@app.route("/profile")
 @app.route("/Customer_Profile")
 def profile():
     # Template file in workspace is named "Customer_Profile (1).html" — render that.
-    return render_template("Customer_Profile (1).html")
+    return render_template("Customer_Profile (1).html", **get_customer_profile_context())
 
 
 # Chat window page opened from the feed when a user books a pro

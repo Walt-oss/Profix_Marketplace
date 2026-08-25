@@ -1,6 +1,17 @@
 import unittest
 
-from main import normalize_artisan_record
+from main import app, normalize_artisan_record
+
+
+class CustomerProfileRenderTests(unittest.TestCase):
+    def test_profile_route_renders_with_default_user_data(self):
+        client = app.test_client()
+        response = client.get("/profile")
+
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn("Pro Fix — My Profile", html)
+        self.assertIn("Preneil Naidoo", html)
 
 
 class ArtisanProfileNormalizationTests(unittest.TestCase):

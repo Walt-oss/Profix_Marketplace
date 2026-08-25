@@ -51,13 +51,13 @@
 
     <div class="profile-card card">
       <div class="cover"></div>
-      <div class="avatar-wrap"><div class="avatar-lg" id="userInitials">PN</div></div>
-      <div class="user-name" id="userName">Preneil Naidoo</div>
-      <div class="user-email">preneil.naidoo@email.com</div>
+      <div class="avatar-wrap"><div class="avatar-lg" id="userInitials">{{ (user.name | default('Preneil Naidoo'))[:2] }}</div></div>
+      <div class="user-name" id="userName">{{ user.name | default('Preneil Naidoo') }}</div>
+      <div class="user-email">{{ user.email | default('preneil.naidoo@email.com') }}</div>
       <div class="stats">
-        <div class="stat-item"><b>12</b><span>Bookings</span></div>
-        <div class="stat-item"><b>1</b><span>Active</span></div>
-        <div class="stat-item"><b>R4,250</b><span>Spent</span></div>
+        <div class="stat-item"><b>{{ user.bookings | default(0) }}</b><span>Bookings</span></div>
+        <div class="stat-item"><b>{{ user.active | default(0) }}</b><span>Active</span></div>
+        <div class="stat-item"><b>R{{ user.spent | default(0) }}</b><span>Spent</span></div>
       </div>
     </div>
 
@@ -65,13 +65,13 @@
       <div class="section-label">Order Tracking</div>
       <div class="order-card card">
         <div class="order-artisan">
-          <div class="avatar" style="background:#F2B705;" id="artisanInitials">JM</div>
-          <div class="order-name" id="artisanName">Jonny Mand</div>
-          <div class="order-role">Electrician</div>
+          <div class="avatar" style="background:#F2B705;" id="artisanInitials">{{ (current_order.artisan_name | default('Jonny Mand'))[:2] }}</div>
+          <div class="order-name" id="artisanName">{{ current_order.artisan_name | default('Jonny Mand') }}</div>
+          <div class="order-role">{{ current_order.artisan_role | default('Electrician') }}</div>
         </div>
         <div class="order-detail">
-          <span class="status-pill on">In progress</span>
-          <p class="order-desc">Rewiring the kitchen circuit and installing a new distribution board. Arrived on site at 10:30, estimated completion by 14:00.</p>
+          <span class="status-pill on">{{ current_order.status | default('In progress') }}</span>
+          <p class="order-desc">{{ current_order.desc | default('Rewiring the kitchen circuit and installing a new distribution board. Arrived on site at 10:30, estimated completion by 14:00.') }}</p>
         </div>
       </div>
     </div>
